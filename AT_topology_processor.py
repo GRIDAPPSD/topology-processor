@@ -140,6 +140,49 @@ def AClinequery(log_file, feeder_mrid, model_api_topic):
     print(bindings[0])'''
     return bindings
 
+def Switchquery(log_file, feeder_mrid, model_api_topic):
+    
+    SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
+
+    gapps = GridAPPSD()
+    sparql_mgr = SPARQLManager(gapps, feeder_mrid, model_api_topic)
+    Query_switch="""
+    PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+    PREFIX c:  <http://iec.ch/TC57/CIM100#>
+    SELECT ?name ?bus1 ?bus2 ?open  ?term1 ?term2 ?node1 ?node2 (group_concat(distinct ?phs;separator="\n") as ?phases) WHERE {
+    ?s r:type c:LoadBreakSwitch.
+    # feeder selection options - if all commented out, query matches all feeders
+    VALUES ?fdrid {%s}  # 13 bus
+    ?s c:Equipment.EquipmentContainer ?fdr.
+    ?fdr c:IdentifiedObject.mRID ?fdrid.
+    ?s c:IdentifiedObject.name ?name.
+    ?t1 c:Terminal.ConductingEquipment ?s.
+    ?t1 c:Terminal.ConnectivityNode ?cn1.
+    ?t1 c:ACDCTerminal.sequenceNumber "1".
+    ?cn1 c:IdentifiedObject.name ?bus1.
+    ?t2 c:Terminal.ConductingEquipment ?s.
+    ?t2 c:Terminal.ConnectivityNode ?cn2.
+    ?t2 c:ACDCTerminal.sequenceNumber "2".
+    ?cn2 c:IdentifiedObject.name ?bus2.
+    bind(strafter(str(?t1), str("http://localhost:8889/bigdata/namespace/kb/sparql#")) as ?term1) 
+    bind(strafter(str(?t2), str("http://localhost:8889/bigdata/namespace/kb/sparql#")) as ?term2)
+    bind(strafter(str(?cn1), str("http://localhost:8889/bigdata/namespace/kb/sparql#")) as ?node1)
+    bind(strafter(str(?cn2), str("http://localhost:8889/bigdata/namespace/kb/sparql#")) as ?node2)
+    OPTIONAL {?swp c:SwitchPhase.Switch ?s.
+    ?swp c:SwitchPhase.phaseSide1 ?phsraw.
+    bind(strafter(str(?phsraw),"SinglePhaseKind.") as ?phs) }
+    }
+    GROUP BY ?name ?bus1 ?bus2 ?open ?term1 ?term2 ?node1 ?node2
+    ORDER BY ?name
+    """%sparql_mgr.feeder_mrid
+    results=sparql_mgr.gad.query_data(Query_switch)
+    bindings = results['data']['results']['bindings']
+    '''print(results)
+    print("\n")
+    print(bindings[0])'''
+    return bindings
+
+
 def _main():
     # for loading modules
     if (os.path.isdir('shared')):
@@ -159,6 +202,8 @@ def _main():
 
     start(log_file, feeder_mrid, model_api_topic)
     Line_query=AClinequery(log_file, feeder_mrid, model_api_topic)
+    #Switch_query=Switchquery(log_file, feeder_mrid, model_api_topic)
+    #print(Switch_query)
     # parse each line to estbalish connectivty nodes list
 
     Lineinfotable=[]
@@ -166,7 +211,8 @@ def _main():
     TerminalsList=[]
     File_connectivitynode=open('Debugnodes.txt','w')
     File_terminals=open('DebugTerminals.txt','w')
-    #print(Line_query[0]['bus1']['value'])
+    File_lineinfo=open('Debuglinestable.txt','w')
+    
     for i in range(len(Line_query)):
         name=Line_query[i]['name']['value']
         bus1=Line_query[i]['bus1']['value']
@@ -180,10 +226,10 @@ def _main():
         lineindex=i
         lineobject=Lineinfo(name,bus1,bus2,id_line,term1,term2,node1,node2,phases,lineindex)
         Lineinfotable.append(lineobject)
-        print(Lineinfotable[i].name,' ',Lineinfotable[i].bus1,' ',Lineinfotable[i].bus2,' ',Lineinfotable[i].id_line,' ')
-        print(Lineinfotable[i].term1,' ',Lineinfotable[i].term2,' ',Lineinfotable[i].node1,' ',Lineinfotable[i].node2,' ')
-        print(Lineinfotable[i].phases,' ',Lineinfotable[i].lineindex)
-        print('\n')
+        strline=Lineinfotable[i].name+' '+Lineinfotable[i].bus1+' '+Lineinfotable[i].bus2+' '+Lineinfotable[i].id_line+' '
+        strline=strline+Lineinfotable[i].term1+' '+Lineinfotable[i].term2+' '+Lineinfotable[i].node1+' '+Lineinfotable[i].node2+' '
+        strline=strline+Lineinfotable[i].phases+' '+str(Lineinfotable[i].lineindex)+'\n'
+        File_lineinfo.write(strline)
         
     # Start Line by line process to build linked list
     for i in range(len(Lineinfotable)):
@@ -233,8 +279,10 @@ def _main():
         lengthofTerminalslist=len(TerminalsList)
         TerminalsList[lengthofTerminalslist-2].next_ent=ConnectivityNodeList[index1].list_t
         TerminalsList[lengthofTerminalslist-1].next_ent=ConnectivityNodeList[index2].list_t
+        # 2. Populate Terminal list far field with nodes
         TerminalsList[lengthofTerminalslist-2].far=ConnectivityNodeList[index2].node_index
         TerminalsList[lengthofTerminalslist-1].far=ConnectivityNodeList[index1].node_index
+        # 3. Populate Connectivity nodes list with terminals
         ConnectivityNodeList[index1].list_t=TerminalsList[lengthofTerminalslist-2].term_id
         ConnectivityNodeList[index2].list_t=TerminalsList[lengthofTerminalslist-1].term_id
         
