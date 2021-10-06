@@ -1,7 +1,14 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[1]:
+
+
 import time, json
 
 
-StartTime = time.process_time()
+# In[2]:
+
 
 # Establish connection to GridAPPS-D Platform:
 from gridappsd import GridAPPSD
@@ -19,15 +26,27 @@ os.environ['GRIDAPPSD_PASSWORD'] = '12345!'
 gapps = GridAPPSD()
 assert gapps.connected
 
-print("Established connection with GriAPPS-D in ", time.process_time() - StartTime, "seconds")
+
+# In[ ]:
+
+
+
+
+
+# ## Run all model queries - convert to run_queries.py
+
+# ### Query for ACLineSegment
+
+# In[3]:
+
 
 #model_mrid = "_C125761E-9C21-4CA9-9271-B168150DE276" #ieee13training
 model_mrid = "_EE71F6C9-56F0-4167-A14E-7F4C71F10EAA" #final9500node
 #model_mrid = "_5B816B93-7A5F-B64C-8460-47C17D6E4B0F" #ieee13assets
 
-#RUN SPARQL QUERIES - MOVE TO SPARQL_QUERIES.PY
 
-StartTime = time.process_time()
+# In[4]:
+
 
 QueryLines="""
     PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -70,8 +89,18 @@ QueryLines="""
     ORDER BY ?name
     """%model_mrid
 
+
+# In[5]:
+
+
 results = gapps.query_data(query = QueryLines, timeout = 60)
 Line_query = results['data']['results']['bindings']
+
+
+# ### Query for TransformerEnd
+
+# In[6]:
+
 
 QueryXfmrs="""
 # list all the terminals connected to a TransformerEnd for CIMWriter
@@ -110,8 +139,18 @@ SELECT ?endclass ?eqid ?endid ?tname ?tid ?bus ?cnid ?tpid ?seq ?phs ?ratedu WHE
 ORDER by ?endclass ?eqid ?tname ?endid ?bus ?cnid ?tpid ?seq ?phs ?ratedu
 """%model_mrid
 
+
+# In[7]:
+
+
 results = gapps.query_data(query = QueryXfmrs, timeout = 60)
 Xfmr_query = results['data']['results']['bindings']
+
+
+# ### Query for Switches, Breakers, Reclosers, Fuses, Sectionalisers
+
+# In[8]:
+
 
 QuerySwitches="""
 # list nodes for Breakers, Reclosers, LoadBreakSwitches, Fuses, Sectionalisers in a selected feeder
@@ -153,8 +192,18 @@ GROUP BY ?cimtype ?name ?id ?bus1 ?bus2 ?term1 ?term2 ?node1 ?node2 ?tpnode1 ?tp
 ORDER BY ?cimtype ?name
 """%model_mrid
 
+
+# In[9]:
+
+
 results = gapps.query_data(query = QuerySwitches, timeout = 60)
 Switch_query = results['data']['results']['bindings']
+
+
+# ### Query for SynchronousMachine
+
+# In[10]:
+
 
 QueryDGs="""
 # SynchronousMachine - DistSyncMachine
@@ -183,8 +232,18 @@ GROUP by ?name ?eqid ?term ?bus ?node ?tpid
 ORDER by ?name
 """%model_mrid
 
+
+# In[11]:
+
+
 results = gapps.query_data(query = QueryDGs, timeout = 60)
 DG_query = results['data']['results']['bindings']
+
+
+# ### Query for TopologicalNode
+
+# In[12]:
+
 
 QueryNodes="""
 # list all the connectivity node, topology node, base voltages
@@ -208,13 +267,22 @@ VALUES ?fdrid {"%s"}  # 13 bus
 ORDER by ?busname ?tpnid ?nomv
 """%model_mrid
 
+
+# In[13]:
+
+
 results = gapps.query_data(query = QueryNodes, timeout = 60)
 Node_query = results['data']['results']['bindings']
 
-print("Queried for all lines, transformers, switches, and DGs", time.process_time() - StartTime, "seconds")
 
+# ### return Line_query, Xfmr_query, Switch_query, DG_query, Node_query
 
-# BUILD LINKNET STRUCTURE - MOVE TO LINKNET.PY
+# ## Build Linknet Lists - convert to linknet.py
+
+# ### Build list of ACLineSegment
+
+# In[14]:
+
 
 index=0
 ConnNodeDict = {}
@@ -284,6 +352,12 @@ for i1 in range(len(Line_query)):
     ConnNodeDict[node2]['list'] = TerminalsDict[term2]['term']
     
 print("Processed ", i1, "line objects in ", time.process_time() - StartTime, "seconds")
+
+
+# ### Build list of Transformers
+
+# In[15]:
+
 
 Xfmr_dict={}
 XfmrKeys=[]
@@ -404,23 +478,31 @@ for i3 in range(len(XfmrKeys)):
 print("Processed ", i2, "transformer objects in ", time.process_time() - StartTime, "seconds")
 
 
+    
+
+
+# ## Add DG source nodes to list
+
+# In[16]:
+
+
 StartTime = time.process_time()
 
 for i4 in range(len(DG_query)):
     node=DG_query[i4]['node']['value']
     term=DG_query[i4]['term']['value']
     
-
+    TerminalsDict[term] = {}
+    TerminalsDict[term]['term'] = i4+2*(i3+i1+1)+1 #updated index, need to add to end of dict
+    TerminalsDict[term]['next'] = 0
+    TerminalsDict[term]['far'] = 0
+    TerminalsDict[term]['name'] = DG_query[i4]['bus']['value']
+    TermList.append(term)
 
     if node not in ConnNodeDict.keys():
         
-        TerminalsDict[term] = {}
-        TerminalsDict[term]['term'] = i4+2*(i3+i1+1)+1 #updated index, need to add to end of dict
-        TerminalsDict[term]['next'] = 0
-        TerminalsDict[term]['far'] = index+1
-        TerminalsDict[term]['name'] = DG_query[i4]['bus']['value']
-        TermList.append(term)
         
+        TerminalsDict[term]['far'] = index+1
         ConnNodeDict[node] = {}
         ConnNodeDict[node]['name'] = DG_query[i4]['bus']['value']
         ConnNodeDict[node]['node'] = index+1
@@ -430,6 +512,12 @@ for i4 in range(len(DG_query)):
         NodeList.append(node)
         
 print("Processed ", i4, "generator objects in ", time.process_time() - StartTime, "seconds")
+
+
+# ## Add missing nodes to dictionary
+
+# In[17]:
+
 
 StartTime = time.process_time()
 old_index = index
@@ -448,9 +536,21 @@ for i4 in range(len(Node_query)):
 print("Processed ", index-old_index, "missing nodes in ", time.process_time() - StartTime, "seconds")
 
 
+# In[18]:
+
+
 # Stash a copy of base dictionary
 BaseConnDict = json.dumps(ConnNodeDict)
 BaseTermDict = json.dumps(TerminalsDict)
+
+
+# # Process Switch Topology - run at each switch change - convert to update_topology.py
+# 
+
+# ## Merge Topology Nodes
+
+# In[19]:
+
 
 # Pull base topology Dictionary
 ConnNodeDict = json.loads(BaseConnDict)
@@ -497,6 +597,12 @@ for i5 in range(len(Switch_query)):
             
 print("Processed ", i5, "switch objects in ", time.process_time() - StartTime, "seconds")
 
+
+# ## Build Spanning Tree from Xfmrs
+
+# In[20]:
+
+
 Tree={}
 TotalNodes=0
 StartTime = time.process_time()
@@ -530,6 +636,12 @@ for i6 in range(len(XfmrKeys)):
         TotalNodes=TotalNodes+NodesInTree
             
 print("Processed ", len(Tree.keys()), "topology trees containing ", TotalNodes, " buses in ", time.process_time() - StartTime, "seconds")
+
+
+# ## Build Spanning Tree from DGs
+
+# In[ ]:
+
 
 Subs=list(Tree.keys())
 TotalNodes = 0
@@ -571,3 +683,37 @@ for i7 in range(len(DG_query)):
         TotalNodes=TotalNodes+NodesInTree
             
 print("Processed ", len(Tree.keys())-len(Subs), " more islands containing ", TotalNodes, " buses in ", time.process_time() - StartTime, "seconds")
+
+
+# In[ ]:
+
+
+
+
+
+# # Update Dictionary Objects:
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+for i9 in range(len(Tree['_16BFA994-771F-4526-8326-9FAE05BA8CEE'])):
+    print(ConnNodeDict[Tree['_16BFA994-771F-4526-8326-9FAE05BA8CEE'][i9]]['name'])
+
+
+# In[ ]:
+
+
+
+
