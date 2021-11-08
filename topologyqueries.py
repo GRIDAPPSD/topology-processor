@@ -1,9 +1,9 @@
 
 def getallqueries(gapps,model_mrid):
-    global Line_query,Xfmr_query,Switch_query,DG_query, Node_query
+    global Line_query,XfmrDict, XfmrKeys,SwitchDict, SwitchKeys,DG_query, Node_query
     Line_query=Linequery(gapps,model_mrid)
-    Xfmr_query=Transformerquery(gapps,model_mrid)
-    Switch_query=Switchquery(gapps,model_mrid)
+    [XfmrDict,XfmrKeys]=Transformerquery(gapps,model_mrid)
+    [SwitchDict,SwitchKeys]=Switchquery(gapps,model_mrid)
     DG_query=DGQuery(gapps,model_mrid)
     Node_query=NodeQuery(gapps,model_mrid)
 
@@ -90,7 +90,57 @@ def Transformerquery(gapps,model_mrid):
         """%model_mrid
     results = gapps.query_data(query = QueryXfmrs, timeout = 60)
     Xfmr_query = results['data']['results']['bindings']
-    return Xfmr_query
+    
+    XfmrDict={}
+    XfmrKeys=[]
+
+    # Build dictionary of FROM-TO nodes for all transformers
+    for i2 in range(len(Xfmr_query)):
+        eqid=Xfmr_query[i2]['eqid']['value']
+
+        seq=Xfmr_query[i2]['seq']['value']
+        if eqid not in XfmrDict:
+            XfmrDict[eqid]={}
+            XfmrKeys.append(eqid)
+        XfmrDict[eqid]['bus']=Xfmr_query[i2]['bus']['value']
+
+        # Identify terminal sequence and create keys for new terminals
+        if seq == '1' or seq == 1:
+            # Primary winding
+            XfmrDict[eqid]['bus1']=Xfmr_query[i2]['bus']['value']
+            XfmrDict[eqid]['term1']=Xfmr_query[i2]['tid']['value']
+            XfmrDict[eqid]['node1']=Xfmr_query[i2]['cnid']['value']
+            XfmrDict[eqid]['tpnode1']=Xfmr_query[i2]['tpid']['value']
+            XfmrDict[eqid]['tname1']=Xfmr_query[i2]['tname']['value']
+            if 'ratedu' in Xfmr_query[i2]: XfmrDict[eqid]['volt1']=int(float(Xfmr_query[i2]['ratedu']['value']))
+            else: XfmrDict[eqid]['volt1']=0
+            if 'phs' in Xfmr_query[i2]: XfmrDict[eqid]['phase1']=Xfmr_query[i2]['phs']['value'] 
+            else: XfmrDict[eqid]['phase1']={}
+
+        elif seq == '2' or seq == 2:
+            XfmrDict[eqid]['bus2']=Xfmr_query[i2]['bus']['value']
+            XfmrDict[eqid]['term2']=Xfmr_query[i2]['tid']['value']
+            XfmrDict[eqid]['node2']=Xfmr_query[i2]['cnid']['value']
+            XfmrDict[eqid]['tpnode2']=Xfmr_query[i2]['tpid']['value']
+            XfmrDict[eqid]['tname2']=Xfmr_query[i2]['tname']['value']
+            if 'ratedu' in Xfmr_query[i2]: XfmrDict[eqid]['volt2']=int(float(Xfmr_query[i2]['ratedu']['value']))
+            else: XfmrDict[eqid]['volt2']=0
+            if 'phs' in Xfmr_query[i2]: XfmrDict[eqid]['phase2']=Xfmr_query[i2]['phs']['value'] 
+            else: XfmrDict[eqid]['phase2']={}
+
+        elif seq == '3' or seq == 3:
+            XfmrDict[eqid]['bus3']=Xfmr_query[i2]['bus']['value']
+            XfmrDict[eqid]['term3']=Xfmr_query[i2]['tid']['value']
+            XfmrDict[eqid]['node3']=Xfmr_query[i2]['cnid']['value']
+            XfmrDict[eqid]['tpnode3']=Xfmr_query[i2]['tpid']['value']
+            XfmrDict[eqid]['tname3']=Xfmr_query[i2]['tname']['value']
+            if 'ratedu' in Xfmr_query[i2]: XfmrDict[eqid]['volt3']=int(float(Xfmr_query[i2]['ratedu']['value']))
+            else: XfmrDict[eqid]['volt3']=0
+            if 'phs' in Xfmr_query[i2]: XfmrDict[eqid]['phase3']=Xfmr_query[i2]['phs']['value'] 
+            else: XfmrDict[eqid]['phase3']={}
+        else:
+            raise ValueError('Unsupported transformer sequence value ', seq)
+    return XfmrDict,XfmrKeys
 
 
 def Switchquery(gapps,model_mrid):
@@ -135,7 +185,31 @@ def Switchquery(gapps,model_mrid):
         """%model_mrid
     results = gapps.query_data(query = QuerySwitches, timeout = 60)
     Switch_query = results['data']['results']['bindings']
-    return Switch_query
+    
+    SwitchDict={}
+    SwitchKeys=[]
+    for i5 in range(len(Switch_query)):
+        mrid=Switch_query[i5]['id']['value']
+        SwitchDict[mrid]={}
+        SwitchKeys.append(mrid)
+        SwitchDict[mrid]['name']=Switch_query[i5]['name']['value']
+        SwitchDict[mrid]['bus1']=Switch_query[i5]['bus1']['value']
+        SwitchDict[mrid]['bus2']=Switch_query[i5]['bus2']['value']
+        SwitchDict[mrid]['term1']=Switch_query[i5]['term1']['value']
+        SwitchDict[mrid]['term2']=Switch_query[i5]['term2']['value']
+        SwitchDict[mrid]['node1']=Switch_query[i5]['node1']['value']
+        SwitchDict[mrid]['node2']=Switch_query[i5]['node2']['value']
+        SwitchDict[mrid]['tpnode1']=Switch_query[i5]['tpnode1']['value']
+        SwitchDict[mrid]['tpnode2']=Switch_query[i5]['tpnode2']['value']
+
+
+        # If switch closed, merge nodes
+        if Switch_query[i5]['open']['value'] == 'false':
+            SwitchDict[mrid]['open'] = 1
+        else:
+            SwitchDict[mrid]['open'] = 0
+        
+    return SwitchDict,SwitchKeys
 
 def DGQuery(gapps,model_mrid):
     QueryDGs="""

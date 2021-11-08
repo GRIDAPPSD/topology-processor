@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------------------
-# Copyright (c) 2017, Battelle Memorial Institute All rights reserved.
+# Copyright (c) 2021, Battelle Memorial Institute All rights reserved.
 # Battelle Memorial Institute (hereinafter Battelle) hereby grants permission to any person or entity
 # lawfully obtaining a copy of this software and associated documentation files (hereinafter the
 # Software) to redistribute and use the Software in source and binary forms, with or without modification.
@@ -38,8 +38,8 @@
 # UNITED STATES DEPARTMENT OF ENERGY under Contract DE-AC05-76RL01830
 # -------------------------------------------------------------------------------
 """
-Created on Jan 19, 2018
-@author: Poorva Sharma
+Created on Oct 20, 2021
+@author: Alexander Anderson, Rohit Jiniswale, Poorva Sharma
 """
 
 import argparse
@@ -60,7 +60,7 @@ from gridappsd.topics import simulation_input_topic, simulation_log_topic, simul
 os.environ['GRIDAPPSD_USER'] = 'app_user'
 os.environ['GRIDAPPSD_PASSWORD'] = '1234App'
 global simulation_id
-simulation_id=788264098
+simulation_id=1978231797
 
 
 class SimulationSubscriber(object):
@@ -71,36 +71,14 @@ class SimulationSubscriber(object):
     message to the simulation_input_topic with the forward and reverse difference specified.
     """
 
-    def __init__(self, simulation_id, gridappsd_obj, equipment_dict, measurement_dict,meas_eq_map,eq_phases_map):
-        """ Create a ``SimulationSubscriber`` object
-        This object is used as a subscription callback from a ``GridAPPSD``
-        object.  This class receives simulation output and publishes 
-	    voltage violation with the frequency as defined by message_period.
-        Parameters
-        ----------
-        simulation_id: str
-            The simulation_id to use for publishing to a topic.
-        gridappsd_obj: GridAPPSD
-            An instatiated object that is connected to the gridappsd message bus
-            usually this should be the same object which subscribes, but that
-            isn't required.
-        capacitor_dict: list(str)
-            A list of capacitors mrids to turn on/off
-        """
-        self._gapps = gridappsd_obj
-        self._publish_to_topic = topics.service_output_topic('gridappsd-topologyprocessor',simulation_id)
-        
-        self.equipment_dict = equipment_dict
+    def __init__(self, simulation_id, gapps_obj, measurement_dict, meas_eq_map):
+
+        self.gapps = gapps_obj
+        self.publish_to_topic = topics.service_output_topic('gridappsd-topologyprocessor',simulation_id)
         self.measurement_dict = measurement_dict
-        self.meas_eq_map = meas_eq_map
-        self.eq_phases_map = eq_phases_map
-        
-        self.simulation_input = {}
+        self.meas_map = meas_eq_map
         self.measurement_value = {}
-        self.rcvd_input = False
-        self.input_map = {}
-        
-        
+        self.processsed = False
 
     def on_message(self, headers, message):
         """ Handle incoming messages on the simulation_output_topic for the simulation_id
@@ -114,60 +92,35 @@ class SimulationSubscriber(object):
             of ``GridAPPSD``.  Most message payloads will be serialized dictionaries, but that is
             not a requirement.
         """
-
-        #print(message)
+        old_topo = False
+        #timestamp = message["message"]["timestamp"]
+        #meas_value = message["message"]["measurements"]
         
-        if "input" in headers["destination"]:
-            for item in message["input"]['message']['forward_differences']:
-                if item["object"] in self.equipment_dict.keys():
-                    if item["attribute"] in ["Switch.open"]:
-                        input = {}
-                        input["equipment_mrid"] = item["object"]
-                        if item["attribute"] == "Switch.open":
-                            input["value"] = 'Open' if item["value"] == 1 else 'Close'
-                        #elif item["attribute"] == "ShuntCompensator.sections":
-                        #    input["value"] = 'Open' if item["value"] == 0 else 'Close'
-                        input["created_by"] = headers["GOSS_SUBJECT"]
-                        input["equipment_name"] = self.equipment_dict[item["object"]]["IdentifiedObject.name"]
-                        input["phases"] = self.eq_phases_map[item["object"]]
-                        self.input_map[item["object"]] = input
-                        #print("Received input: "+str(self.input_map))
-                   
-        flag = 0
-        listswitch=[]   
+        #if self.processed == False:
+            #First time topology processor is called
+            
         if "output" in headers["destination"]:
             for measurement in self.measurement_dict:
-                if measurement not in self.measurement_value:
-                    self.measurement_value[measurement] = message["message"]["measurements"][measurement]['value']
-                else:
-                    if self.measurement_value[measurement] != message["message"]['measurements'][measurement]['value']:
-                        #print("Value changed for +"+measurement+" changed from "+str(self.measurement_value[measurement])+" to "+str(message["message"]['measurements'][measurement]['value']))
-                        self.measurement_value[measurement] = message["message"]['measurements'][measurement]['value']
-                        equipment_mrid = self.meas_eq_map[measurement]
-                        if equipment_mrid in self.input_map:
-                            Switch_query[equipment_mrid]['open']['value']=self.measurement_value[measurement]
-                            #listswitch.append()
-                            #alarm = self.input_map[equipment_mrid]
-                            #del self.input_map[equipment_mrid]
-                            #alarm["timestamp"] = message["message"]["timestamp"]	
-                            #alarm_list.append(alarm)
-                            flag=1
-        
-        if (flag==1):
-            # Run Switch query again
-                            
-            
-            print(Switch_query)
-            # Process Switch Topology - run at each switch change - merges topology nodes across closed switches
-                            
-            [TerminalsDict,ConnNodeDict]=update_topology.topology_update(BaseConnDict,BaseTermDict,Switch_query,TermList)
+                position = message["message"]["measurements"][measurement]['value']
+                eqid = self.meas_map[measurement]
+                if SwitchDict[eqid]['open'] != int(position):
+                    if position == 0:
+                        print('Detected switch ', SwitchDict[eqid]['name'], ' has opened')
+                    else:
+                        print('Detected switch ', SwitchDict[eqid]['name'], ' has closed')
+                    SwitchDict[eqid]['open'] = position
+                    old_topo = True
 
-            # Build Spanning Tree from Xfmrs & DGs
 
-            [Tree,TotalNodes]=spanning_tree.generate_spanning_tree(XfmrKeys,Xfmr_dict,ConnNodeDict,TerminalsDict,TermList,NodeList,DG_query)
-                            
-            #print("alarm_list::  "+str(alarm_list))
-            self._gapps.send(self._publish_to_topic, json.dumps(Tree))
+            if old_topo:                            
+                # Process Switch Topology - run at each switch change - merges topology nodes across closed switches
+                [TerminalsDict,ConnNodeDict]=update_topology.topology_update(BaseConnDict,BaseTermDict,SwitchDict,SwitchKeys,TermList)
+
+                # Build Spanning Tree from Xfmrs & DGs
+                [Tree,TotalNodes]=spanning_tree.generate_spanning_tree(XfmrKeys, XfmrDict, ConnNodeDict, TerminalsDict, TermList, NodeList, DG_query)
+
+                # Publish updated tree
+                #self._gapps.send(self._publish_to_topic, json.dumps(Tree))
                         
 
 class Logger(object):
@@ -214,8 +167,8 @@ def _main():
     #
     #opts = parser.parse_args()
     
-    global BaseConnDict,BaseTermDict,Switch_query,TermList
-    global XfmrKeys,Xfmr_dict,NodeList,DG_query
+    global BaseConnDict,BaseTermDict,TermList, NodeList
+    global XfmrKeys,XfmrDict,SwitchKeys,SwitchDict,DG_query
     
     
     sim_output_topic = simulation_output_topic(simulation_id)
@@ -224,8 +177,9 @@ def _main():
     #sim_request = json.loads(opts.request.replace("\'",""))
     #model_mrid = sim_request["power_system_config"]["Line_name"]
     #model_mrid = "_C125761E-9C21-4CA9-9271-B168150DE276" #ieee13training
-    #model_mrid = "_EE71F6C9-56F0-4167-A14E-7F4C71F10EAA" #final9500node
-    model_mrid = "_5B816B93-7A5F-B64C-8460-47C17D6E4B0F" #ieee13assets
+    model_mrid = "_EE71F6C9-56F0-4167-A14E-7F4C71F10EAA" #final9500node
+    #model_mrid = "_AAE94E4A-2465-6F5E-37B1-3E72183A4E44" #test9500
+    #model_mrid = "_5B816B93-7A5F-B64C-8460-47C17D6E4B0F" #ieee13assets
     #model_mrid="_C1C3E687-6FFD-C753-582B-632A27E28507" # IEEE 123
     gapps = GridAPPSD(simulation_id)
     logger = Logger(simulation_id, gapps, sim_log_topic)
@@ -235,14 +189,16 @@ def _main():
     # Query for ACLineSegment, Transformerend, Switches, Breakers, Reclosers, Fuses, Sectionalisers,SynchronousMachine,TopologicalNode
     topologyqueries.getallqueries(gapps,model_mrid)
     Line_query=topologyqueries.Line_query
-    Xfmr_query=topologyqueries.Xfmr_query
-    Switch_query=topologyqueries.Switch_query
+    XfmrDict=topologyqueries.XfmrDict
+    XfmrKeys=topologyqueries.XfmrKeys
+    SwitchDict=topologyqueries.SwitchDict
+    SwitchKeys=topologyqueries.SwitchKeys
     DG_query=topologyqueries.DG_query
     Node_query=topologyqueries.Node_query
-    print(Switch_query)
+    #print(Switch_query)
     
     # Build Linknet Lists from ACLineSegment,Transformers,DGs and Nodes
-    [ConnNodeDict,TerminalsDict,Xfmr_dict,XfmrKeys,TermList,NodeList]=linkedlist.build_linked_list(Line_query,Xfmr_query,DG_query,Node_query)
+    [ConnNodeDict,TerminalsDict,TermList,NodeList]=linkedlist.build_linked_list(Line_query,XfmrDict,XfmrKeys,DG_query,Node_query)
 
     # Stash a copy of base dictionary
     BaseConnDict = json.dumps(ConnNodeDict)
@@ -250,57 +206,18 @@ def _main():
 
     # Process Switch Topology - run at each switch change - merges topology nodes across closed switches
 
-    [TerminalsDict,ConnNodeDict]=update_topology.topology_update(BaseConnDict,BaseTermDict,Switch_query,TermList)
+    [TerminalsDict,ConnNodeDict]=update_topology.topology_update(BaseConnDict,BaseTermDict,SwitchDict,SwitchKeys,TermList)
 
     # Build Spanning Tree from Xfmrs & DGs
 
-    [Tree,TotalNodes]=spanning_tree.generate_spanning_tree(XfmrKeys,Xfmr_dict,ConnNodeDict,TerminalsDict,TermList,NodeList,DG_query)
+    [Tree,TotalNodes]=spanning_tree.generate_spanning_tree(XfmrKeys,XfmrDict,ConnNodeDict,TerminalsDict,TermList,NodeList,DG_query)
 
     try: 
-        #capacitors_dict = {}
-        #switches_dict = {}
-        #capacitors_meas_dict = {}
-        #switches_meas_dict = {}
-        
+          
         equipment_dict = {}
         measurement_dict = {}
-        '''
-        request = {
-            "modelId": model_mrid,
-            "requestType": "QUERY_OBJECT_DICT",
-            "resultFormat": "JSON",
-            "objectType": "LinearShuntCompensator"
-            }
-    
-        response = gapps.get_response("goss.gridappsd.process.request.data.powergridmodel",request,timeout=15)
-        for capacitor in response["data"]:
-            equipment_dict[capacitor["id"]] = capacitor
-        '''
-        request = {
-            "modelId": model_mrid,
-            "requestType": "QUERY_OBJECT_DICT",
-            "resultFormat": "JSON",
-            "objectType": "LoadBreakSwitch"
-            }
-    
-        response = gapps.get_response("goss.gridappsd.process.request.data.powergridmodel",request,timeout=15)
-        for switch in response["data"]:
-            equipment_dict[switch["id"]] = switch
-    
-        #print(capacitors_dict)
-        #print(switches_dict)
-        '''
-        request = {"modelId": model_mrid,
-                   "requestType": "QUERY_OBJECT_MEASUREMENTS",
-                   "resultFormat": "JSON",
-                   "objectType": "LinearShuntCompensator"
-                   }
-        
-        response = gapps.get_response("goss.gridappsd.process.request.data.powergridmodel",request,timeout=15)
-        for measurement in response["data"]:
-            if measurement["type"] == "Pos":
-                measurement_dict[measurement["measid"]] = measurement
-        '''    
+        meas_map = {}
+        #Query for switch position measurement mRIDs
         request = {"modelId": model_mrid,
                    "requestType": "QUERY_OBJECT_MEASUREMENTS",
                    "resultFormat": "JSON",
@@ -310,7 +227,10 @@ def _main():
         response = gapps.get_response("goss.gridappsd.process.request.data.powergridmodel",request,timeout=15)
         for measurement in response["data"]:
             if measurement["type"] == "Pos":
-                measurement_dict[measurement["measid"]] = measurement
+                measid = measurement["measid"]
+                measurement_dict[measid] = measurement
+                meas_map[measid] = measurement["eqid"]
+                SwitchDict[measurement["eqid"]]["measid"] = measid
     
         #print(capacitors_meas_dict)
         #print(switches_meas_dict)
@@ -332,7 +252,7 @@ def _main():
     except Exception as e:
         logger.log("ERROR", e , "ERROR")
     #logger.log("DEBUG","Subscribing to simulation","RUNNING")
-    subscriber = SimulationSubscriber(simulation_id, gapps, equipment_dict, measurement_dict,meas_eq_map, eq_phases_map)
+    subscriber = SimulationSubscriber(simulation_id, gapps, measurement_dict, meas_map)
     gapps.subscribe(sim_input_topic, subscriber)
     gapps.subscribe(sim_output_topic, subscriber)
     #logger.log("DEBUG","Service Initialized","RUNNING")

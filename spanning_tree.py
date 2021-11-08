@@ -5,12 +5,13 @@ def generate_spanning_tree(XfmrKeys,Xfmr_dict,ConnNodeDict,TerminalsDict,TermLis
     # ## Build Spanning Tree from Xfmrs
     
     Tree={}
+    #ProcessedNodes=[]
     TotalNodes=0
     StartTime = time.process_time()
 
     # Iterate through all substation transformers
     for i6 in range(len(XfmrKeys)):
-        
+
         # Identify if distribution substation transformer
         if (int(Xfmr_dict[XfmrKeys[i6]]['volt1']) >= 34000 and 34000 >= int(Xfmr_dict[XfmrKeys[i6]]['volt2']) > 1000) or (int(Xfmr_dict[XfmrKeys[i6]]['volt2']) >= 34000 and 34000 >= int(Xfmr_dict[XfmrKeys[i6]]['volt1']) > 1000):
             # Create Tree starting from this transformer
@@ -28,9 +29,16 @@ def generate_spanning_tree(XfmrKeys,Xfmr_dict,ConnNodeDict,TerminalsDict,TermLis
                     NextNode = TerminalsDict[TermList[NextTerm-1]]['far']
                     NextTerm = TerminalsDict[TermList[NextTerm-1]]['next']
                     # Add to tree if not there already
+                    not_in_tree = False
+
                     if NodeList[NextNode-1] not in Tree[XfmrKeys[i6]]:
-                        Tree[XfmrKeys[i6]].append(NodeList[NextNode-1])
-                        LastNode = LastNode + 1
+                        if 'nomv' in ConnNodeDict[NodeList[NextNode-1]]:
+                            if int(ConnNodeDict[NodeList[NextNode-1]]['nomv']) < 34000:
+                                Tree[XfmrKeys[i6]].append(NodeList[NextNode-1])
+                                LastNode = LastNode + 1
+                        else:
+                            Tree[XfmrKeys[i6]].append(NodeList[NextNode-1])
+                            LastNode = LastNode + 1
                         
             NodesInTree=len(Tree[XfmrKeys[i6]])
             print("Processed topology from substation transformer ", Xfmr_dict[XfmrKeys[i6]]['tname1'], " with ", NodesInTree, " buses")
@@ -83,4 +91,6 @@ def generate_spanning_tree(XfmrKeys,Xfmr_dict,ConnNodeDict,TerminalsDict,TermLis
             TotalNodes=TotalNodes+NodesInTree
                 
     print("Processed ", len(Tree.keys())-len(Subs), " more islands containing ", TotalNodes, " buses in ", time.process_time() - StartTime, "seconds")
+    print(' ')
+    print(' ')
     return Tree,TotalNodes
