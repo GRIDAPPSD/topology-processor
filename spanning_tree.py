@@ -51,7 +51,7 @@ def generate_spanning_tree(XfmrKeys,Xfmr_dict,ConnNodeDict,TerminalsDict,TermLis
 
 
 
-    Subs=list(Tree.keys())
+    Subs_old=list(Tree.keys())
     TotalNodes = 0
     StartTime = time.process_time()
 
@@ -61,6 +61,7 @@ def generate_spanning_tree(XfmrKeys,Xfmr_dict,ConnNodeDict,TerminalsDict,TermLis
         node=DG_query[i7]['node']['value']
         term=DG_query[i7]['term']['value']
         islanded = True
+        Subs=list(Tree.keys())
         
         # Identify if DER is really islanded
         for i8 in range(len(Subs)):
@@ -90,7 +91,7 @@ def generate_spanning_tree(XfmrKeys,Xfmr_dict,ConnNodeDict,TerminalsDict,TermLis
             NodesInTree=len(Tree[node])
             TotalNodes=TotalNodes+NodesInTree
                 
-    print("Processed ", len(Tree.keys())-len(Subs), " more islands containing ", TotalNodes, " buses in ", time.process_time() - StartTime, "seconds")
+    print("Processed ", len(Tree.keys())-len(Subs_old), " more islands containing ", TotalNodes, " buses in ", time.process_time() - StartTime, "seconds")
     print(' ')
     print(' ')
     return Tree,TotalNodes
