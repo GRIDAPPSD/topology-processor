@@ -12,10 +12,10 @@ def build_linked_list(Line_query,XfmrDict,XfmrKeys,DG_query,Node_query):
     StartTime = time.process_time()
 
     for i1 in range(len(Line_query)):
-        name=Line_query[i1]['name']['value']
+        lname=Line_query[i1]['name']['value']
         bus1=Line_query[i1]['bus1']['value']
         bus2=Line_query[i1]['bus2']['value']
-        id_line=Line_query[i1]['id']['value']
+        line_mrid=Line_query[i1]['id']['value']
         tname1=Line_query[i1]['tname1']['value']
         tname2=Line_query[i1]['tname2']['value']
         term1=Line_query[i1]['term1']['value']
@@ -39,6 +39,8 @@ def build_linked_list(Line_query,XfmrDict,XfmrKeys,DG_query,Node_query):
         # If node1 or node2 not in dict, create new keys
         if not node1 in ConnNodeDict.keys():
             ConnNodeDict[node1] = {}
+            ConnNodeDict[node1]['lines'] = []
+            ConnNodeDict[node1]['line_ids'] = []
             ConnNodeDict[node1]['name'] = bus1
             ConnNodeDict[node1]['node'] = index+1
             ConnNodeDict[node1]['list'] = 0
@@ -48,6 +50,8 @@ def build_linked_list(Line_query,XfmrDict,XfmrKeys,DG_query,Node_query):
 
         if not node2 in ConnNodeDict.keys(): 
             ConnNodeDict[node2] = {}
+            ConnNodeDict[node2]['lines'] = []
+            ConnNodeDict[node2]['line_ids'] = []
             ConnNodeDict[node2]['name'] = bus2
             ConnNodeDict[node2]['node'] = index+1
             ConnNodeDict[node2]['list'] = 0
@@ -70,6 +74,12 @@ def build_linked_list(Line_query,XfmrDict,XfmrKeys,DG_query,Node_query):
         # 3. Populate Connectivity nodes list with terminals
         ConnNodeDict[node1]['list'] = TerminalsDict[term1]['term']
         ConnNodeDict[node2]['list'] = TerminalsDict[term2]['term']
+        
+        # 4. Update other node properties
+        ConnNodeDict[node1]['lines'].append(lname)
+        ConnNodeDict[node2]['lines'].append(lname)
+        ConnNodeDict[node1]['line_ids'].append(line_mrid)
+        ConnNodeDict[node2]['line_ids'].append(line_mrid)
         
     print("Processed ", i1+1, "line objects in ", time.process_time() - StartTime, "seconds")
 
@@ -138,6 +148,17 @@ def build_linked_list(Line_query,XfmrDict,XfmrKeys,DG_query,Node_query):
         # 3. Populate Connectivity nodes list with terminals
         ConnNodeDict[node1]['list'] = TerminalsDict[term1]['term']
         ConnNodeDict[node2]['list'] = TerminalsDict[term2]['term']
+        
+        # 4. Update other node properties
+        if 'xfmr' in ConnNodeDict[node1]:
+            ConnNodeDict[node1]['xfmr'].append(tname1)
+        else:
+            ConnNodeDict[node1]['xfmr'] = [tname1]
+
+        if 'xfmr' in ConnNodeDict[node2]:
+            ConnNodeDict[node2]['xfmr'].append(tname2)
+        else:
+            ConnNodeDict[node2]['xfmr'] = [tname2]
         
         #NEED TO INSERT LOGIC TO HANDLE THREE-WINDING SUBSTATION XFMR
         

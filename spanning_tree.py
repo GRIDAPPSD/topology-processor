@@ -35,9 +35,13 @@ def generate_spanning_tree(XfmrKeys,Xfmr_dict,ConnNodeDict,TerminalsDict,TermLis
                         if 'nomv' in ConnNodeDict[NodeList[NextNode-1]]:
                             if int(ConnNodeDict[NodeList[NextNode-1]]['nomv']) < 34000:
                                 Tree[XfmrKeys[i6]].append(NodeList[NextNode-1])
+                                ConnNodeDict[NodeList[NextNode-1]]['fdr_xfmr'] = Xfmr_dict[XfmrKeys[i6]]['tname2']
+                                ConnNodeDict[NodeList[NextNode-1]]['fdr_xfmr_id'] = XfmrKeys[i6]
                                 LastNode = LastNode + 1
                         else:
                             Tree[XfmrKeys[i6]].append(NodeList[NextNode-1])
+                            ConnNodeDict[NodeList[NextNode-1]]['fdr_xfmr'] = Xfmr_dict[XfmrKeys[i6]]['tname2']
+                            ConnNodeDict[NodeList[NextNode-1]]['fdr_xfmr_id'] = XfmrKeys[i6]
                             LastNode = LastNode + 1
                         
             NodesInTree=len(Tree[XfmrKeys[i6]])
@@ -60,6 +64,7 @@ def generate_spanning_tree(XfmrKeys,Xfmr_dict,ConnNodeDict,TerminalsDict,TermLis
     for i7 in range(len(DG_query)):
         node=DG_query[i7]['node']['value']
         term=DG_query[i7]['term']['value']
+        name=DG_query[i7]['name']['value']
         islanded = True
         Subs=list(Tree.keys())
         
@@ -75,6 +80,7 @@ def generate_spanning_tree(XfmrKeys,Xfmr_dict,ConnNodeDict,TerminalsDict,TermLis
             # Set as rootnode 
             # assuming node1 is high and node2 is low - need to verify will work otherwise
             Tree[node]=[node]
+            ConnNodeDict[node]['island'] = name
 
             while LastNode != FirstNode:
                 NextTerm = ConnNodeDict[Tree[node][FirstNode]]['list']
@@ -86,6 +92,7 @@ def generate_spanning_tree(XfmrKeys,Xfmr_dict,ConnNodeDict,TerminalsDict,TermLis
                     # Add to tree if not there already
                     if NodeList[NextNode-1] not in Tree[node]:
                         Tree[node].append(NodeList[NextNode-1])
+                        ConnNodeDict[NodeList[NextNode-1]]['island'] = name
                         LastNode = LastNode + 1
                         
             NodesInTree=len(Tree[node])
