@@ -60,7 +60,7 @@ from gridappsd.topics import simulation_input_topic, simulation_log_topic, simul
 os.environ['GRIDAPPSD_USER'] = 'app_user'
 os.environ['GRIDAPPSD_PASSWORD'] = '1234App'
 global simulation_id
-simulation_id=1978231797
+simulation_id='707758295'
 
 
 class SimulationSubscriber(object):
@@ -74,7 +74,7 @@ class SimulationSubscriber(object):
     def __init__(self, simulation_id, gapps_obj, measurement_dict, meas_eq_map):
 
         self.gapps = gapps_obj
-        self.publish_to_topic = topics.service_output_topic('gridappsd-topologyprocessor',simulation_id)
+        self.publish_to_topic = topics.service_output_topic('topologyprocessor',simulation_id)
         self.measurement_dict = measurement_dict
         self.meas_map = meas_eq_map
         self.measurement_value = {}
@@ -93,21 +93,21 @@ class SimulationSubscriber(object):
             not a requirement.
         """
         old_topo = False
-        #timestamp = message["message"]["timestamp"]
-        #meas_value = message["message"]["measurements"]
         
-        #if self.processed == False:
-            #First time topology processor is called
-            
+        # Check if message received is simulation output message
         if "output" in headers["destination"]:
+            timestamp = message["message"]["timestamp"]
+            
+            # Parse list of measurements
             for measurement in self.measurement_dict:
                 position = message["message"]["measurements"][measurement]['value']
                 eqid = self.meas_map[measurement]
+                # Check if any switch positions have changed
                 if SwitchDict[eqid]['open'] != int(position):
                     if position == 0:
-                        print('Detected switch ', SwitchDict[eqid]['name'], ' has opened')
+                        print('Detected switch ', SwitchDict[eqid]['name'], ' has opened at time ', timestamp)
                     else:
-                        print('Detected switch ', SwitchDict[eqid]['name'], ' has closed')
+                        print('Detected switch ', SwitchDict[eqid]['name'], ' has closed at time ', timestamp)
                     SwitchDict[eqid]['open'] = position
                     old_topo = True
 
@@ -119,8 +119,12 @@ class SimulationSubscriber(object):
                 # Build Spanning Tree from Xfmrs & DGs
                 [Tree,TotalNodes]=spanning_tree.generate_spanning_tree(XfmrKeys, XfmrDict, ConnNodeDict, TerminalsDict, TermList, NodeList, DG_query)
 
-                # Publish updated tree
-                #self._gapps.send(self._publish_to_topic, json.dumps(Tree))
+                # Publish updated topology
+                output = {}
+                output['timestamp'] = timestamp
+                output['ConnNodeDict'] = ConnNodeDict
+                output['TopologyTree'] = Tree
+                self.gapps.send(self.publish_to_topic, json.dumps(output))
                         
 
 class Logger(object):
@@ -245,10 +249,7 @@ def _main():
                         eq_phases_map[equipment] = measurement_dict[measurement]['phases']
                     meas_eq_map[measurement] = equipment
         
-        #print(meas_eq_map)
-    
-        #capacitors_dict = get_capacitor_measurements(gapps, model_mrid)
-        #switches_dict = get_switch_measurements(gapps, model_mrid)
+
     except Exception as e:
         logger.log("ERROR", e , "ERROR")
     #logger.log("DEBUG","Subscribing to simulation","RUNNING")

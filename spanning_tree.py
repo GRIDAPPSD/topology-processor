@@ -35,13 +35,21 @@ def generate_spanning_tree(XfmrKeys,Xfmr_dict,ConnNodeDict,TerminalsDict,TermLis
                         if 'nomv' in ConnNodeDict[NodeList[NextNode-1]]:
                             if int(ConnNodeDict[NodeList[NextNode-1]]['nomv']) < 34000:
                                 Tree[XfmrKeys[i6]].append(NodeList[NextNode-1])
-                                ConnNodeDict[NodeList[NextNode-1]]['fdr_xfmr'] = Xfmr_dict[XfmrKeys[i6]]['tname2']
-                                ConnNodeDict[NodeList[NextNode-1]]['fdr_xfmr_id'] = XfmrKeys[i6]
+                                if 'fdr_xfmr' in ConnNodeDict[NodeList[NextNode-1]]:
+                                    ConnNodeDict[NodeList[NextNode-1]]['fdr_xfmr'].append(Xfmr_dict[XfmrKeys[i6]]['tname2'])
+                                    ConnNodeDict[NodeList[NextNode-1]]['fdr_xfmr_id'].append(XfmrKeys[i6])
+                                else:
+                                    ConnNodeDict[NodeList[NextNode-1]]['fdr_xfmr'] = [Xfmr_dict[XfmrKeys[i6]]['tname2']]
+                                    ConnNodeDict[NodeList[NextNode-1]]['fdr_xfmr_id'] = [XfmrKeys[i6]]
                                 LastNode = LastNode + 1
                         else:
                             Tree[XfmrKeys[i6]].append(NodeList[NextNode-1])
-                            ConnNodeDict[NodeList[NextNode-1]]['fdr_xfmr'] = Xfmr_dict[XfmrKeys[i6]]['tname2']
-                            ConnNodeDict[NodeList[NextNode-1]]['fdr_xfmr_id'] = XfmrKeys[i6]
+                            if 'fdr_xfmr' in ConnNodeDict[NodeList[NextNode-1]]:
+                                ConnNodeDict[NodeList[NextNode-1]]['fdr_xfmr'].append(Xfmr_dict[XfmrKeys[i6]]['tname2'])
+                                ConnNodeDict[NodeList[NextNode-1]]['fdr_xfmr_id'].append(XfmrKeys[i6])
+                            else:
+                                ConnNodeDict[NodeList[NextNode-1]]['fdr_xfmr'] = [Xfmr_dict[XfmrKeys[i6]]['tname2']]
+                                ConnNodeDict[NodeList[NextNode-1]]['fdr_xfmr_id'] = [XfmrKeys[i6]]
                             LastNode = LastNode + 1
                         
             NodesInTree=len(Tree[XfmrKeys[i6]])
