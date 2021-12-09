@@ -243,6 +243,35 @@ def DGQuery(gapps,model_mrid):
     DG_query = results['data']['results']['bindings']
     return DG_query
 
+def CapsQuery(gapps,model_mrid):
+    QueryCaps="""
+    PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+    PREFIX c:  <http://iec.ch/TC57/CIM100#>
+    SELECT 
+
+    ?name ?id ?nomu ?node ?term ?fdrid WHERE {
+     ?s r:type c:LinearShuntCompensator.
+
+    VALUES ?fdrid {"%s"}
+     ?s c:Equipment.EquipmentContainer ?fdr.
+     ?fdr c:IdentifiedObject.mRID ?fdrid.
+     ?s c:IdentifiedObject.name ?name.
+     ?s c:ConductingEquipment.BaseVoltage ?bv.
+     ?bv c:BaseVoltage.nominalVoltage ?basev.
+     ?s c:ShuntCompensator.nomU ?nomu. 
+     ?s c:IdentifiedObject.mRID ?id. 
+     ?t c:Terminal.ConductingEquipment ?s.
+     ?t c:Terminal.ConnectivityNode ?cn. 
+     ?cn c:IdentifiedObject.name ?bus
+     bind(strafter(str(?cn),"#") as ?node).
+     bind(strafter(str(?s),"#") as ?term).
+    }
+    ORDER by ?name
+    """%model_mrid
+    results = gapps.query_data(query = QueryCaps, timeout = 60)
+    Cap_query = results['data']['results']['bindings']
+    return Cap_query
+
 def NodeQuery(gapps,model_mrid):
     QueryNodes="""
         # list all the connectivity node, topology node, base voltages

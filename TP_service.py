@@ -60,7 +60,7 @@ from gridappsd.topics import simulation_input_topic, simulation_log_topic, simul
 os.environ['GRIDAPPSD_USER'] = 'app_user'
 os.environ['GRIDAPPSD_PASSWORD'] = '1234App'
 global simulation_id
-simulation_id='1466395301'
+simulation_id='743288370'
 
 
 class SimulationSubscriber(object):
