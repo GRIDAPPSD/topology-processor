@@ -1,10 +1,11 @@
 
 def getallqueries(gapps,model_mrid):
-    global Line_query,XfmrDict, XfmrKeys,SwitchDict, SwitchKeys,DG_query, Node_query
+    global Line_query,XfmrDict, XfmrKeys,SwitchDict, SwitchKeys,DG_query, Cap_query, Node_query
     Line_query=Linequery(gapps,model_mrid)
     [XfmrDict,XfmrKeys]=Transformerquery(gapps,model_mrid)
     [SwitchDict,SwitchKeys]=Switchquery(gapps,model_mrid)
     DG_query=DGQuery(gapps,model_mrid)
+    Cap_query=CapQuery(gapps,model_mrid)
     Node_query=NodeQuery(gapps,model_mrid)
 
 
@@ -243,7 +244,7 @@ def DGQuery(gapps,model_mrid):
     DG_query = results['data']['results']['bindings']
     return DG_query
 
-def CapsQuery(gapps,model_mrid):
+def CapQuery(gapps,model_mrid):
     QueryCaps="""
     PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
     PREFIX c:  <http://iec.ch/TC57/CIM100#>
@@ -274,11 +275,10 @@ def CapsQuery(gapps,model_mrid):
 
 def NodeQuery(gapps,model_mrid):
     QueryNodes="""
-        # list all the connectivity node, topology node, base voltages
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX c:  <http://iec.ch/TC57/CIM100#>
-        SELECT DISTINCT ?busname ?cnid ?tpnid ?nomv WHERE {
-        VALUES ?fdrid {"%s"}  # 13 bus
+        SELECT DISTINCT ?busname ?cnid ?tpnid  WHERE {
+          VALUES ?fdrid {"%s"}
         ?fdr c:IdentifiedObject.mRID ?fdrid.
         ?bus c:ConnectivityNode.ConnectivityNodeContainer ?fdr.
         ?bus c:ConnectivityNode.TopologicalNode ?tp.
@@ -288,11 +288,15 @@ def NodeQuery(gapps,model_mrid):
         ?fdr c:IdentifiedObject.name ?feeder.
         ?trm c:Terminal.ConnectivityNode ?bus.
         ?trm c:Terminal.ConductingEquipment ?ce.
+        
+        OPTIONAL {
         ?ce  c:ConductingEquipment.BaseVoltage ?bv.
         ?bv  c:BaseVoltage.nominalVoltage ?nomv.
+          }
         bind(strafter(str(?tp), str("http://localhost:8889/bigdata/namespace/kb/sparql#")) as ?tpnid)
         }
-        ORDER by ?busname ?tpnid ?nomv
+        GROUP by ?busname ?cnid ?tpnid
+        ORDER by ?busname
         """%model_mrid
 
     results = gapps.query_data(query = QueryNodes, timeout = 60)

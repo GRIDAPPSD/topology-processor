@@ -9,31 +9,6 @@ def build_linked_list(Line_query,XfmrDict,XfmrKeys,DG_query,Node_query):
     TerminalsDict = {}
     NodeList = []
     TermList = []
-    i1 = -1
-    
-    StartTime = time.process_time()
-
-    for i0 in range(len(Node_query)):
-        node=Node_query[i0]['cnid']['value']
-        
-        ConnNodeDict[node] = {}
-        ConnNodeDict[node]['name'] = Node_query[i0]['busname']['value']
-        ConnNodeDict[node]['tpid'] = Node_query[i0]['tpnid']['value']
-        if 'nomv' in Node_query[i0]: 
-            ConnNodeDict[node]['nomv'] = Node_query[i0]['nomv']['value']
-        else:
-            ConnNodeDict[node]['nomv'] = []
-        ConnNodeDict[node]['ACLineSegment.name'] = []
-        ConnNodeDict[node]['ACLineSegment.mRID'] = []
-        ConnNodeDict[node]['TransformerEnd.name'] = []
-        ConnNodeDict[node]['TransformerEnd.mRID'] = []
-        ConnNodeDict[node]['switch.name'] = []
-        ConnNodeDict[node]['switch.mRID'] = []
-        ConnNodeDict[node]['SynchronousMachine.name'] = []
-        ConnNodeDict[node]['SynchronousMachine.mRID'] = []
-
-    print("Processed ", i0+1, "buses in ", time.process_time() - StartTime, "seconds")
-
     StartTime = time.process_time()
 
     for i1 in range(len(Line_query)):
@@ -62,16 +37,25 @@ def build_linked_list(Line_query,XfmrDict,XfmrKeys,DG_query,Node_query):
         #TerminalsDict[term2]['phases'] = phases
         
         # If node1 or node2 not in dict, create new keys
-        if 'node' not in ConnNodeDict[node1]:
-
+        if not node1 in ConnNodeDict.keys():
+            ConnNodeDict[node1] = {}
+            ConnNodeDict[node1]['lines'] = []
+            ConnNodeDict[node1]['line_ids'] = []
+            ConnNodeDict[node1]['name'] = bus1
             ConnNodeDict[node1]['node'] = index+1
             ConnNodeDict[node1]['list'] = 0
+            ConnNodeDict[node1]['tpid'] = tpnode1
             index = index+1
             NodeList.append(node1)
 
-        if 'node' not in ConnNodeDict[node2]: 
+        if not node2 in ConnNodeDict.keys(): 
+            ConnNodeDict[node2] = {}
+            ConnNodeDict[node2]['lines'] = []
+            ConnNodeDict[node2]['line_ids'] = []
+            ConnNodeDict[node2]['name'] = bus2
             ConnNodeDict[node2]['node'] = index+1
             ConnNodeDict[node2]['list'] = 0
+            ConnNodeDict[node2]['tpid'] = tpnode2
             index = index+1
             NodeList.append(node2)
         
@@ -92,10 +76,10 @@ def build_linked_list(Line_query,XfmrDict,XfmrKeys,DG_query,Node_query):
         ConnNodeDict[node2]['list'] = TerminalsDict[term2]['term']
         
         # 4. Update other node properties
-        ConnNodeDict[node1]['ACLineSegment.name'].append(lname)
-        ConnNodeDict[node2]['ACLineSegment.name'].append(lname)
-        ConnNodeDict[node1]['ACLineSegment.mRID'].append(line_mrid)
-        ConnNodeDict[node2]['ACLineSegment.mRID'].append(line_mrid)
+        ConnNodeDict[node1]['lines'].append(lname)
+        ConnNodeDict[node2]['lines'].append(lname)
+        ConnNodeDict[node1]['line_ids'].append(line_mrid)
+        ConnNodeDict[node2]['line_ids'].append(line_mrid)
         
     print("Processed ", i1+1, "line objects in ", time.process_time() - StartTime, "seconds")
 
@@ -115,6 +99,8 @@ def build_linked_list(Line_query,XfmrDict,XfmrKeys,DG_query,Node_query):
         tname2=XfmrDict[XfmrKeys[i3]]['tname2']
         node1=XfmrDict[XfmrKeys[i3]]['node1']
         node2=XfmrDict[XfmrKeys[i3]]['node2']
+        tpnode1=XfmrDict[XfmrKeys[i3]]['tpnode1']
+        tpnode2=XfmrDict[XfmrKeys[i3]]['tpnode2']
         
         # THIS CODE IS EXACT SAME AS ABOVE FOR LINES, COULD PUT INTO FUNCTION OR CLASS THAT CAN BE CALLED
         
@@ -129,15 +115,21 @@ def build_linked_list(Line_query,XfmrDict,XfmrKeys,DG_query,Node_query):
         #TerminalsDict[term2]['phases'] = phases
         
         # If node1 or node2 not in dict, create new keys
-        if 'node' not in ConnNodeDict[node1]:
+        if not node1 in ConnNodeDict.keys():
+            ConnNodeDict[node1] = {}
+            ConnNodeDict[node1]['name'] = bus1
             ConnNodeDict[node1]['node'] = index+1
             ConnNodeDict[node1]['list'] = 0
+            ConnNodeDict[node1]['tpid'] = tpnode1
             index = index+1
             NodeList.append(node1)
 
-        if 'node' not in ConnNodeDict[node2]: 
+        if not node2 in ConnNodeDict.keys(): 
+            ConnNodeDict[node2] = {}
+            ConnNodeDict[node2]['name'] = bus2
             ConnNodeDict[node2]['node'] = index+1
             ConnNodeDict[node2]['list'] = 0
+            ConnNodeDict[node2]['tpid'] = tpnode2
             index = index+1
             NodeList.append(node2)
         
@@ -158,13 +150,23 @@ def build_linked_list(Line_query,XfmrDict,XfmrKeys,DG_query,Node_query):
         ConnNodeDict[node2]['list'] = TerminalsDict[term2]['term']
         
         # 4. Update other node properties
+        if 'xfmr' in ConnNodeDict[node1]:
+            ConnNodeDict[node1]['TransformerEnd.name'].append(tname1)
+            ConnNodeDict[node1]['TransformerEnd.mRID'].append(XfmrKeys[i3])
 
-        ConnNodeDict[node1]['TransformerEnd.name'].append(tname1)
-        ConnNodeDict[node1]['TransformerEnd.mRID'].append(XfmrKeys[i3])
+        else:
+            ConnNodeDict[node1]['TransformerEnd.name'] = [tname1]
+            ConnNodeDict[node1]['TransformerEnd.mRID'] = [XfmrKeys[i3]]
+            
 
-        ConnNodeDict[node2]['TransformerEnd.name'].append(tname2)
-        ConnNodeDict[node2]['TransformerEnd.mRID'].append(XfmrKeys[i3])
-
+        if 'xfmr' in ConnNodeDict[node2]:
+            ConnNodeDict[node2]['TransformerEnd.name'].append(tname2)
+            ConnNodeDict[node2]['TransformerEnd.mRID'].append(XfmrKeys[i3])
+            
+        else:
+            ConnNodeDict[node2]['TransformerEnd.name'] = [tname2]
+            ConnNodeDict[node2]['TransformerEnd.mRID'] = [XfmrKeys[i3]]
+            
         
         #NEED TO INSERT LOGIC TO HANDLE THREE-WINDING SUBSTATION XFMR
         
@@ -211,12 +213,16 @@ def build_linked_list(Line_query,XfmrDict,XfmrKeys,DG_query,Node_query):
     old_index = index
     for i5 in range(len(Node_query)):
         node=Node_query[i5]['cnid']['value']
-        if 'list' not in ConnNodeDict[node]:
+        nomv=Node_query[i5]['nomv']['value']
+        if node not in ConnNodeDict.keys():
+            ConnNodeDict[node] = {}
+            ConnNodeDict[node]['name'] = Node_query[i5]['busname']['value']
             ConnNodeDict[node]['node'] = index+1
             ConnNodeDict[node]['list'] = 0
+            ConnNodeDict[node]['tpid'] = Node_query[i5]['tpnid']['value']
             index = index+1
-            NodeList.append(node)
-            
+            NodeList.append(node1)
+        ConnNodeDict[node]['nomv'] = nomv    
     print("Processed ", index-old_index, "missing nodes in ", time.process_time() - StartTime, "seconds")
 
     return ConnNodeDict,TerminalsDict,TermList,NodeList
