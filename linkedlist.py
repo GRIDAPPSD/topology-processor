@@ -9,7 +9,6 @@ def build_linked_list(Line_query,XfmrDict,XfmrKeys,DG_query,Node_query):
     TerminalsDict = {}
     NodeList = []
     TermList = []
-    i1 = -1
     
     StartTime = time.process_time()
 
@@ -186,20 +185,14 @@ def build_linked_list(Line_query,XfmrDict,XfmrKeys,DG_query,Node_query):
         TerminalsDict[term]['name'] = DG_query[i4]['bus']['value']
         TermList.append(term)
 
-        if node not in ConnNodeDict.keys():            
+        if 'list' not in ConnNodeDict[node]:            
             TerminalsDict[term]['far'] = index+1
-            ConnNodeDict[node] = {}
-            ConnNodeDict[node]['name'] = DG_query[i4]['bus']['value']
             ConnNodeDict[node]['node'] = index+1
             ConnNodeDict[node]['list'] = TerminalsDict[term]['term']
-            ConnNodeDict[node]['tpid'] = DG_query[i4]['tpid']['value']
             index = index+1
             NodeList.append(node)
-            
-        if 'der' in ConnNodeDict[node1]:
-            ConnNodeDict[node]['der'].append(name)
-        else:
-            ConnNodeDict[node]['der'] = [name]
+            #ConnNodeDict[node]['SynchronousMachine.name'].append(name)
+            #ConnNodeDict[node]['SynchronousMachine.mRID'].append(DG_query[i4]['eqid']['value'])
             
     if (len(DG_query)>0):        
         print("Processed ", i4+1, "generator objects in ", time.process_time() - StartTime, "seconds")

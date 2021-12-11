@@ -1,15 +1,16 @@
 
 def getallqueries(gapps,model_mrid):
     global Line_query,XfmrDict, XfmrKeys,SwitchDict, SwitchKeys,DG_query, Cap_query, Node_query
-    Line_query=Linequery(gapps,model_mrid)
-    [XfmrDict,XfmrKeys]=Transformerquery(gapps,model_mrid)
+    Line_query=line_query(gapps,model_mrid)
+    [XfmrDict,XfmrKeys]=transformer_query(gapps,model_mrid)
     [SwitchDict,SwitchKeys]=Switchquery(gapps,model_mrid)
     DG_query=DGQuery(gapps,model_mrid)
     Cap_query=CapQuery(gapps,model_mrid)
-    Node_query=NodeQuery(gapps,model_mrid)
+    Node_query=node_query(gapps,model_mrid)
 
 
-def Linequery(gapps,model_mrid):
+
+def line_query(gapps,model_mrid):
     QueryLines="""
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX c:  <http://iec.ch/TC57/CIM100#>
@@ -53,7 +54,7 @@ def Linequery(gapps,model_mrid):
     Line_query = results['data']['results']['bindings']
     return Line_query
 
-def Transformerquery(gapps,model_mrid):
+def transformer_query(gapps,model_mrid):
     QueryXfmrs="""
         # list all the terminals connected to a TransformerEnd for CIMWriter
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -273,7 +274,7 @@ def CapQuery(gapps,model_mrid):
     Cap_query = results['data']['results']['bindings']
     return Cap_query
 
-def NodeQuery(gapps,model_mrid):
+def node_query(gapps,model_mrid):
     QueryNodes="""
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX c:  <http://iec.ch/TC57/CIM100#>
@@ -302,3 +303,39 @@ def NodeQuery(gapps,model_mrid):
     results = gapps.query_data(query = QueryNodes, timeout = 60)
     Node_query = results['data']['results']['bindings']
     return Node_query
+
+def measurement_query(gapps, model_mrid):
+    QueryMeasurements="""
+        # list all measurements, with buses and equipments - DistMeasurement
+        PREFIX r: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c: <http://iec.ch/TC57/CIM100#>
+        SELECT ?class ?cnid ?type ?name ?bus ?phases ?meastype ?eqname ?eqid ?trmid ?measid WHERE {
+        VALUES ?fdrid {"%s"}
+         ?eq c:Equipment.EquipmentContainer ?fdr.
+         ?fdr c:IdentifiedObject.mRID ?fdrid. 
+        { ?s r:type c:Discrete. bind ("Discrete" as ?class)}
+          UNION
+        { ?s r:type c:Analog. bind ("Analog" as ?class)}
+         ?s c:IdentifiedObject.name ?name .
+         ?s c:IdentifiedObject.mRID ?measid .
+         ?s c:Measurement.PowerSystemResource ?eq .
+         ?s c:Measurement.Terminal ?trm .
+         ?s c:Measurement.measurementType ?type .
+         ?trm c:IdentifiedObject.mRID ?trmid.
+         ?eq c:IdentifiedObject.mRID ?eqid.
+         ?eq c:IdentifiedObject.name ?eqname.
+         #?eq r:type ?typeraw.
+         # bind(strafter(str(?typeraw),"#") as ?eqtype)
+         bind(strbefore(str(?name),"_") as ?meastype)
+         ?trm c:Terminal.ConnectivityNode ?cn.
+         ?cn c:IdentifiedObject.name ?bus.
+         ?cn c:IdentifiedObject.mRID ?cnid.
+         ?s c:Measurement.phases ?phsraw .
+           {bind(strafter(str(?phsraw),"PhaseCode.") as ?phases)}
+
+        } ORDER BY ?cnid ?type
+        """%model_mrid
+    
+    results = gapps.query_data(query = QueryMeasurements, timeout = 60)
+    MeasurementQuery = results['data']['results']['bindings']
+    return MeasurementQuery
