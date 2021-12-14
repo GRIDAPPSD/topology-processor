@@ -213,7 +213,8 @@ def build_linked_list(Line_query,XfmrDict,XfmrKeys,DG_query,Node_query):
     old_index = index
     for i5 in range(len(Node_query)):
         node=Node_query[i5]['cnid']['value']
-        nomv=Node_query[i5]['nomv']['value']
+        if 'nomv' in Node_query[i5]: nomv=Node_query[i5]['nomv']['value']
+        else: nomv = 0
         if node not in ConnNodeDict.keys():
             ConnNodeDict[node] = {}
             ConnNodeDict[node]['name'] = Node_query[i5]['busname']['value']

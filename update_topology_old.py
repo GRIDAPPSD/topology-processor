@@ -1,14 +1,10 @@
 import time,json
 
-def topology_update(BaseConnDict, BaseTermDict, NodeList, TermList, EquipDict):
+def topology_update(BaseConnDict,BaseTermDict,SwitchDict,SwitchKeys,TermList):
 
-    SwitchKeys = list(EquipDict['Breaker'].keys()) + list(EquipDict['Fuse'].keys()) + list(EquipDict['LoadBreakSwitch'].keys()) + list(EquipDict['Recloser'].keys())
-    SwitchDict = {}
-    SwitchDict.update(EquipDict['Breaker'])
-    SwitchDict.update(EquipDict['Fuse'])
-    SwitchDict.update(EquipDict['LoadBreakSwitch'])
-    SwitchDict.update(EquipDict['Recloser'])
+    # ## Merge Topology Nodes
 
+    # Pull base topology Dictionary
     ConnNodeDict = json.loads(BaseConnDict)
     TerminalsDict = json.loads(BaseTermDict)
 
@@ -23,8 +19,8 @@ def topology_update(BaseConnDict, BaseTermDict, NodeList, TermList, EquipDict):
         # If switch closed, merge nodes
         if SwitchDict[SwitchKeys[i5]]['open'] == 1:
             # Merge topology Nodes
-            #ConnNodeDict[node1]['TopologicalNode'] = tpnode1
-            ConnNodeDict[node2]['TopologicalNode'] = ConnNodeDict[node1]['TopologicalNode'] #tpnode1
+            #ConnNodeDict[node1]['tpid'] = tpnode1
+            ConnNodeDict[node2]['tpid'] = ConnNodeDict[node1]['tpid'] #tpnode1
             #TopoNodeDict[tpnode1] = [node1, node2] # not implemented
             #TopoNodeDict[tpnode2] = [node2, node1]
 
