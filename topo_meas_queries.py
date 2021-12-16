@@ -44,8 +44,9 @@ def get_all_nodes(gapps, model_mrid):
     QueryNodeMessage="""
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX c:  <http://iec.ch/TC57/CIM100#>
-        SELECT DISTINCT ?busname ?cnid ?tpnid ?nomv  WHERE {
-          VALUES ?fdrid {"%s"}
+        SELECT DISTINCT ?busname ?cnid ?tpnid (group_concat(distinct ?nomu;separator="") as ?nomv ) WHERE {
+        SELECT ?busname ?cnid ?tpnid ?nomu WHERE {
+        VALUES ?fdrid {"%s"}
         ?fdr c:IdentifiedObject.mRID ?fdrid.
         ?bus c:ConnectivityNode.ConnectivityNodeContainer ?fdr.
         ?bus c:ConnectivityNode.TopologicalNode ?tp.
@@ -58,11 +59,12 @@ def get_all_nodes(gapps, model_mrid):
         
         OPTIONAL {
         ?ce  c:ConductingEquipment.BaseVoltage ?bv.
-        ?bv  c:BaseVoltage.nominalVoltage ?nomv.
+        ?bv  c:BaseVoltage.nominalVoltage ?nomu.
           }
         bind(strafter(str(?tp), str("http://localhost:8889/bigdata/namespace/kb/sparql#")) as ?tpnid)
-        }
-        GROUP by ?busname ?cnid ?tpnid ?nomv
+        } ORDER by ?busname
+        } 
+        GROUP by ?busname ?cnid ?tpnid 
         ORDER by ?busname
         """%model_mrid
 
@@ -199,3 +201,63 @@ def get_all_lines(gapps, model_mrid):
     results = gapps.query_data(query = QueryLineMessage, timeout = 60)
     LineQuery = results['data']['results']['bindings']
     return LineQuery
+
+def get_all_houses(gapps, model_mrid):
+    QueryHouseMessage = """
+    # list houses - DistHouse
+    PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+    PREFIX c:  <http://iec.ch/TC57/CIM100#>
+    SELECT  ?name ?parent ?id ?cnid ?tid
+    WHERE { 
+    VALUES ?fdrid {"%s"} 
+       ?h r:type c:House.
+       ?h c:IdentifiedObject.name ?name.
+       ?h c:IdentifiedObject.mRID ?id.
+       ?h c:House.EnergyConsumer ?econ.
+       ?econ c:IdentifiedObject.name ?parent.
+       ?t c:Terminal.ConductingEquipment ?econ.
+       ?t c:Terminal.ConnectivityNode ?cn.
+       ?fdr c:IdentifiedObject.mRID ?fdrid.
+       ?fdr c:IdentifiedObject.name ?fdrname.
+       ?econ c:Equipment.EquipmentContainer ?fdr.
+       bind(strafter(str(?t),"#") as ?tid).
+       bind(strafter(str(?cn),"#") as ?cnid).
+    } ORDER BY ?name
+    """%model_mrid
+    results = gapps.query_data(query = QueryHouseMessage, timeout = 60)
+    HouseQuery = results['data']['results']['bindings']
+    return HouseQuery
+
+def get_all_tapchangers(gapps, model_mrid):
+    QueryTapMessage = """
+    # voltage regulators - DistRegulator
+    PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+    PREFIX c:  <http://iec.ch/TC57/CIM100#>
+    SELECT ?rname ?eqid ?wnum ?cnid ?tid ?seq ?pxfid ?tankid
+    WHERE {
+    VALUES ?fdrid {"%s"}  # 123 PV
+     ?pxf c:Equipment.EquipmentContainer ?fdr.
+     ?fdr c:IdentifiedObject.mRID ?fdrid.
+     ?rtc r:type c:RatioTapChanger.
+     ?rtc c:IdentifiedObject.name ?rname.
+     ?rtc c:RatioTapChanger.TransformerEnd ?end.
+     ?end c:TransformerEnd.endNumber ?wnum.
+     ?end c:TransformerEnd.Terminal ?t.
+     ?t c:Terminal.ConnectivityNode ?cn. 
+     ?t c:ACDCTerminal.sequenceNumber ?seq.
+     {?end c:PowerTransformerEnd.PowerTransformer ?pxf.
+      ?pxf c:IdentifiedObject.mRID ?eqid.}
+     UNION
+     {?end c:TransformerTankEnd.TransformerTank ?tank.
+     ?tank c:IdentifiedObject.mRID ?eqid.
+     ?tank c:TransformerTank.PowerTransformer ?pxf.}
+     bind(strafter(str(?t),"#") as ?tid).
+     bind(strafter(str(?cn),"#") as ?cnid).
+     bind(strafter(str(?pxf),"#") as ?pxfid).
+     bind(strafter(str(?tank),"#") as ?tankid).
+    }
+    ORDER BY ?rname ?wnum
+    """%model_mrid
+    results = gapps.query_data(query = QueryTapMessage, timeout = 60)
+    TapChangerQuery = results['data']['results']['bindings']
+    return TapChangerQuery

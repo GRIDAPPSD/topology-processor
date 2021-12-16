@@ -32,8 +32,8 @@ def generate_spanning_tree(XfmrKeys,Xfmr_dict,ConnNodeDict,TerminalsDict,TermLis
                     not_in_tree = False
 
                     if NodeList[NextNode-1] not in Tree[XfmrKeys[i6]]:
-                        if ConnNodeDict[NodeList[NextNode-1]]['nominalVoltage']:
-                            if int(ConnNodeDict[NodeList[NextNode-1]]['nominalVoltage']) < 34000:
+                        if ConnNodeDict[NodeList[NextNode-1]]['nomv']:
+                            if int(ConnNodeDict[NodeList[NextNode-1]]['nomv']) < 34000:
                                 Tree[XfmrKeys[i6]].append(NodeList[NextNode-1])
                                 if 'fdr_xfmr' in ConnNodeDict[NodeList[NextNode-1]]:
                                     ConnNodeDict[NodeList[NextNode-1]]['fdr_xfmr'].append(Xfmr_dict[XfmrKeys[i6]]['tname2'])

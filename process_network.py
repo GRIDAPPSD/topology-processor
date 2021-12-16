@@ -8,6 +8,7 @@ def build_equip_dicts(gapps, model_mrid):
     EquipDict['ACLineSegment'] = {}
     EquipDict['Breaker'] = {}
     EquipDict['EnergyConsumer'] = {}
+    EquipDict['House'] = {}
     EquipDict['Fuse'] = {}
     EquipDict['LinearShuntCompensator'] = {}
     EquipDict['LoadBreakSwitch'] = {}
@@ -19,8 +20,8 @@ def build_equip_dicts(gapps, model_mrid):
     EquipDict['PowerElectronicsConnection'] = {}
     
     # Initialize dictionary keys for all ConnectivityNode objects in model:
-    NodeQuery=topology.get_all_nodes(gapps,model_mrid)
     StartTime = time.process_time()
+    NodeQuery=topology.get_all_nodes(gapps,model_mrid)
     for i0 in range(len(NodeQuery)):
         node=NodeQuery[i0]['cnid']['value']
         ConnNodeDict[node] = {}
@@ -34,6 +35,7 @@ def build_equip_dicts(gapps, model_mrid):
         ConnNodeDict[node]['Breaker'] = []
         ConnNodeDict[node]['EnergyConsumer'] = []
         ConnNodeDict[node]['Fuse'] = []
+        ConnNodeDict[node]['House'] = []
         ConnNodeDict[node]['LinearShuntCompensator'] = []
         ConnNodeDict[node]['LoadBreakSwitch'] = []
         ConnNodeDict[node]['PowerTransformer'] = []
@@ -46,8 +48,9 @@ def build_equip_dicts(gapps, model_mrid):
     print('Processed ', i0+1, 'ConnectivyNode objects in ', time.process_time() - StartTime, "seconds")
     
     # Import all measurements and associated objects:
-    MeasurementQuery=topology.get_all_measurements(gapps,model_mrid)
     StartTime = time.process_time()
+    MeasurementQuery=topology.get_all_measurements(gapps,model_mrid)
+    i1 = -1
     # Parse all entries in query response
     for i1 in range(len(MeasurementQuery)):    
         node = MeasurementQuery[i1]['cnid']['value']
@@ -56,8 +59,7 @@ def build_equip_dicts(gapps, model_mrid):
         # Associate measurement mRID with ConnectivityNode
         ConnNodeDict[node]['Measurement'].append(MeasurementQuery[i1]['measid']['value'])
         # Associate equipment mRID with ConnectivityNode if not already defined by prior measurement
-        if eqid not in ConnNodeDict[node][eqtype]:
-            ConnNodeDict[node][eqtype].append(eqid)
+        if eqid not in ConnNodeDict[node][eqtype]: ConnNodeDict[node][eqtype].append(eqid)
         # Create equipment dictionary entry if not already defined by prior measurement
         if eqid not in EquipDict[eqtype]: 
             EquipDict[eqtype][eqid] = {}
@@ -74,17 +76,28 @@ def build_equip_dicts(gapps, model_mrid):
     print('Processed ', i1+1, 'Measurement objects in ', time.process_time() - StartTime, "seconds")
     
     # Import all ACLineSegment objects - SECOND PASS
+    StartTime = time.process_time()
     LineQuery = topology.get_all_lines(gapps, model_mrid)
+    i2 = -1
+    eqtype = 'ACLineSegment'
     for i2 in range(len(LineQuery)):
         eqid = LineQuery[i2]['id']['value']
-        EquipDict['ACLineSegment'][eqid]['term1'] = LineQuery[i2]['term1']['value']
-        EquipDict['ACLineSegment'][eqid]['term2'] = LineQuery[i2]['term2']['value']
-        EquipDict['ACLineSegment'][eqid]['node1'] = LineQuery[i2]['node1']['value']
-        EquipDict['ACLineSegment'][eqid]['node2'] = LineQuery[i2]['node2']['value']
+        
+        # Associate equipment mRID with ConnectivityNode if not already defined by prior measurement
+        if eqid not in ConnNodeDict[LineQuery[i2]['node1']['value']][eqtype]: 
+            ConnNodeDict[LineQuery[i2]['node1']['value']][eqtype].append(eqid)
+        if eqid not in ConnNodeDict[LineQuery[i2]['node2']['value']][eqtype]: 
+            ConnNodeDict[LineQuery[i2]['node2']['value']][eqtype].append(eqid)
+        EquipDict[eqtype][eqid]['term1'] = LineQuery[i2]['term1']['value']
+        EquipDict[eqtype][eqid]['term2'] = LineQuery[i2]['term2']['value']
+        EquipDict[eqtype][eqid]['node1'] = LineQuery[i2]['node1']['value']
+        EquipDict[eqtype][eqid]['node2'] = LineQuery[i2]['node2']['value']
     print('Processed ', i2+1, 'ACLineSegment objects in ', time.process_time() - StartTime, "seconds")
     
     # Import all PowerTransformer and TransformerTank objects - SECOND PASS
+    StartTime = time.process_time()
     XfmrQuery = topology.get_all_transformers(gapps, model_mrid)
+    i2 = -1
     for i2 in range(len(XfmrQuery)):
         eqtype = XfmrQuery[i2]['class']['value']
         eqid = XfmrQuery[i2]['eqid']['value']
@@ -96,7 +109,8 @@ def build_equip_dicts(gapps, model_mrid):
         EquipDict[eqtype][eqid]['term' + seq] = XfmrQuery[i2]['tid']['value']
         EquipDict[eqtype][eqid]['node' + seq] = XfmrQuery[i2]['cnid']['value']
         EquipDict[eqtype][eqid]['tname' + seq] = XfmrQuery[i2]['tname']['value']
-
+        if eqid not in ConnNodeDict[XfmrQuery[i2]['cnid']['value']][eqtype]:
+            ConnNodeDict[XfmrQuery[i2]['cnid']['value']][eqtype].append(eqid)
         if 'ratedu' in XfmrQuery[i2]: # Add rated voltage if defined
             EquipDict[eqtype][eqid]['volt' + seq] = int(float(XfmrQuery[i2]['ratedu']['value']))
         else: EquipDict[eqtype][eqid]['volt' + seq] = 0 
@@ -106,7 +120,9 @@ def build_equip_dicts(gapps, model_mrid):
     print('Processed ', i2+1, 'Transformer objects in ', time.process_time() - StartTime, "seconds")
     
     # Import all Breaker, Fuse, LoadBreakSwitch, and Recloser objects -  SECOND PASS
+    StartTime = time.process_time()
     SwitchQuery = topology.get_all_switches(gapps, model_mrid)
+    i3 = -1
     for i3 in range(len(SwitchQuery)):
         eqid = SwitchQuery[i3]['id']['value']
         eqtype = SwitchQuery[i3]['cimtype']['value']
@@ -122,4 +138,40 @@ def build_equip_dicts(gapps, model_mrid):
         else: 
             EquipDict[eqtype][eqid]['open'] = 0
     print('Processed ', i3+1, 'Switch objects in ', time.process_time() - StartTime, "seconds")
+
+
+    # Import all House objects
+    StartTime = time.process_time()
+    HouseQuery = topology.get_all_houses(gapps, model_mrid)
+    i4 = -1
+    for i4 in range(len(HouseQuery)):
+        eqid = HouseQuery[i3]['id']['value']
+        eqtype = 'House'
+        # Check if house not defined when parsing measurements
+        if eqid not in EquipDict[eqtype]: EquipDict[eqtype][eqid] = {}
+        EquipDict[eqtype][eqid]['term1']=HouseQuery[i3]['tid']['value']
+        EquipDict[eqtype][eqid]['node1']=HouseQuery[i3]['cnid']['value']
+
+    print('Processed ', i4+1, 'House objects in ', time.process_time() - StartTime, "seconds")
+    
+    # Import all RatioTapChanger objects
+    StartTime = time.process_time()
+    TapChangerQuery = topology.get_all_tapchangers(gapps, model_mrid)
+    eqtype = 'RatioTapChanger'
+    i5 = -1
+    for i5 in range(len(TapChangerQuery)):
+        eqid = TapChangerQuery[i5]['pxfid']['value']
+        tankid = TapChangerQuery[i5]['tankid']['value']
+        pxfid = TapChangerQuery[i5]['pxfid']['value']
+        if tankid in EquipDict['TransformerTank']:
+            EquipDict[eqtype][eqid] = dict(EquipDict['TransformerTank'][tankid])
+        elif pxfid in EquipDict['PowerTransformer']:
+            EquipDict[eqtype][eqid] = dict(EquipDict['PowerTransformer'][pxfid])
+        EquipDict[eqtype][eqid]['name'] = TapChangerQuery[i5]['rname']['value']
+        EquipDict[eqtype][eqid]['TransformerTank'] = tankid
+        EquipDict[eqtype][eqid]['PowerTransformer'] = pxfid
+        EquipDict[eqtype][eqid]['node'] = TapChangerQuery[i5]['cnid']['value']
+        EquipDict[eqtype][eqid]['term'] = TapChangerQuery[i5]['tid']['value']
+    print('Processed ', i5+1, 'RatioTapChanger objects in ', time.process_time() - StartTime, "seconds")
+        
     return ConnNodeDict, EquipDict
