@@ -6,18 +6,21 @@ import update_topology
 import spanning_tree
 
 
+
+
 def create_switch_areas(gapps, model_mrid):
-    print('Querying for power system model')
+    gapps_log = gapps.get_logger()
+    gapps_log.debug('Querying for power system model')
     [ConnNodeDict, EquipDict] = process_network.build_equip_dicts(gapps, model_mrid)
     BaseConnDict = json.dumps(ConnNodeDict)
     MVConnNodeDict = json.loads(BaseConnDict)
-    print('Building linked lists of all equipment')
+    gapps_log.debug('Building linked lists of all equipment')
     EqTypes = ['ACLineSegment', 'PowerTransformer', 'TransformerTank', 'SynchronousMachine']
     [ConnNodeDict, TerminalsDict, NodeList, TermList] = linknet.build_linknet_lists(ConnNodeDict, EquipDict, EqTypes)
-    print('Building linked lists of medium-voltage equipment')
+    gapps_log.debug('Building linked lists of medium-voltage equipment')
     EqTypes = ['ACLineSegment', 'RatioTapChanger', 'SynchronousMachine']
     [MVConnNodeDict, MVTerminalsDict, MVNodeList, MVTermList] = linknet.build_linknet_lists(MVConnNodeDict, EquipDict, EqTypes)
-    print('Processing switch-delimited areas')
+    gapps_log.debug('Processing switch-delimited areas')
     MVTrees = {}
     [MVTrees, MVConnNodeDict] = spanning_tree.local_spanning_tree(MVConnNodeDict, MVTerminalsDict, MVNodeList, MVTermList, EquipDict, 'Breaker', list(EquipDict['Breaker'].keys()), MVTrees, 'all')
     [MVTrees, MVConnNodeDict] = spanning_tree.local_spanning_tree(MVConnNodeDict, MVTerminalsDict, MVNodeList, MVTermList, EquipDict, 'Fuse', list(EquipDict['Fuse'].keys()), MVTrees, 'all')

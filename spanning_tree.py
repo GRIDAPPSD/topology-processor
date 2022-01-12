@@ -1,8 +1,7 @@
 import time
 
 def local_spanning_tree(ConnNodeDict, TerminalsDict, NodeList, TermList, EquipDict, eqtype, RootKeys, Tree, Scope):
-    #Tree={}
-    #ProcessedNodes=[]
+
     TotalNodes=0
     old_len = len(Tree.keys())
     StartTime = time.process_time()
@@ -12,27 +11,20 @@ def local_spanning_tree(ConnNodeDict, TerminalsDict, NodeList, TermList, EquipDi
         key = RootKeys[i6]
         Tree[key] = []
 
-        # Set switch as rootnode 
+        # If switch object, only use second node
         if eqtype in ['Breaker', 'Fuse', 'LoadBreakSwitch', 'Recloser']:
         #, 'SynchronousMachine', 'PowerElectronicsConnection']:
-            
-            #if check_tree(EquipDict[eqtype][key]['node1'], Tree, Scope, key):
-            #    Tree[key].append(EquipDict[eqtype][key]['node1'])
-            #    FirstNode = 0
-            #    LastNode = 1
-            #elif check_tree(EquipDict[eqtype][key]['node2'], Tree, Scope, key): 
                 Tree[key].append(EquipDict[eqtype][key]['node2'])
                 FirstNode = 0
-                LastNode = 1
-           # else:
-           #     break
+                LastNode = 1 # only 1 node, so initialize list at 0,1
+        # Otherwise, use both nodes    
         else: # Then 2-terminal object
             not_in_tree = check_tree(EquipDict[eqtype][key]['node2'], Tree, Scope, key)
             if not_in_tree:
                 Tree[key].append(EquipDict[eqtype][key]['node1'])
                 Tree[key].append(EquipDict[eqtype][key]['node2'])
                 FirstNode = 1 
-                LastNode = 2
+                LastNode = 2 # 2 nodes in starting list, so initialize at 1,2
             else:
                 break
         while LastNode != FirstNode:
@@ -47,10 +39,11 @@ def local_spanning_tree(ConnNodeDict, TerminalsDict, NodeList, TermList, EquipDi
                 # Add node if not in another tree        
                 if not_in_tree:       
                     if ConnNodeDict[node]['nominalVoltage']:
-                        if int(ConnNodeDict[node]['nominalVoltage']) < 34000: # and int(ConnNodeDict[node]['nomv']) > 1000:
+                        # Stop building tree into sub-transmission network
+                        if int(ConnNodeDict[node]['nominalVoltage']) < 34000: 
                             Tree[key].append(NodeList[NextNode-1])
                             LastNode = LastNode + 1                       
-                    else:
+                    else: # Add node to tree if no nominal voltage defined
                         Tree[key].append(NodeList[NextNode-1])
                         LastNode = LastNode + 1
 
@@ -65,7 +58,9 @@ def local_spanning_tree(ConnNodeDict, TerminalsDict, NodeList, TermList, EquipDi
     print("Processed ", len(Tree.keys()) - old_len, "topology trees containing ", TotalNodes, " buses in ", time.process_time() - StartTime, "seconds")
 
     return Tree, ConnNodeDict
-
+# function to check if a node is the spanning tree
+# use argument "all" to check all trees from all root nodes
+# use argument "single" to only check the single tree from current root node
 def check_tree(node, Tree, Scope, key):
     not_in_tree = True
     if Scope == 'all': 

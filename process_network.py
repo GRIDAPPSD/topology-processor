@@ -3,6 +3,7 @@ import topo_meas_queries as topology
 
 # Create dictionary of all equipment and measurements sorted by ConnectivityNode
 def build_equip_dicts(gapps, model_mrid):
+    gapps_log = gapps.get_logger()
     ConnNodeDict = {}
     EquipDict = {}
     EquipDict['ACLineSegment'] = {}
@@ -46,7 +47,7 @@ def build_equip_dicts(gapps, model_mrid):
         ConnNodeDict[node]['SynchronousMachine'] = []
         ConnNodeDict[node]['PowerElectronicsConnection'] = []
         ConnNodeDict[node]['Measurement'] = []
-    print('Processed ', i0+1, 'ConnectivyNode objects in ', time.process_time() - StartTime, "seconds")
+    gapps_log.debug('Processed ' + str(i0+1) + ' ConnectivyNode objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
     
     # Import all measurements and associated objects:
     StartTime = time.process_time()
@@ -74,7 +75,7 @@ def build_equip_dicts(gapps, model_mrid):
             EquipDict[eqtype][eqid]['node1'] = node
             EquipDict[eqtype][eqid]['term1'] = MeasurementQuery[i1]['trmid']['value']
         # NEED TO ADD LOGIC FOR 3-WINDING TRANSFORMERS LATER
-    print('Processed ', i1+1, 'Measurement objects in ', time.process_time() - StartTime, "seconds")
+    gapps_log.debug('Processed ' + str(i1+1) + ' Measurement objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
     
     # Import all ACLineSegment objects - SECOND PASS
     StartTime = time.process_time()
@@ -93,7 +94,7 @@ def build_equip_dicts(gapps, model_mrid):
         EquipDict[eqtype][eqid]['term2'] = LineQuery[i2]['term2']['value']
         EquipDict[eqtype][eqid]['node1'] = LineQuery[i2]['node1']['value']
         EquipDict[eqtype][eqid]['node2'] = LineQuery[i2]['node2']['value']
-    print('Processed ', i2+1, 'ACLineSegment objects in ', time.process_time() - StartTime, "seconds")
+    gapps_log.debug('Processed ' + str(i2+1) + ' ACLineSegment objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
     
     # Import all PowerTransformer and TransformerTank objects - SECOND PASS
     StartTime = time.process_time()
@@ -118,7 +119,7 @@ def build_equip_dicts(gapps, model_mrid):
         if 'phs' in XfmrQuery[i2]:  # Add phase if defined
             EquipDict[eqtype][eqid]['phase' + seq] = XfmrQuery[i2]['phs']['value'] 
         else: EquipDict[eqtype][eqid]['phase' + seq] = {}
-    print('Processed ', i2+1, 'Transformer objects in ', time.process_time() - StartTime, "seconds")
+    gapps_log.debug('Processed ' + str(i2+1) + ' Transformer objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
     
     # Import all Breaker, Fuse, LoadBreakSwitch, and Recloser objects -  SECOND PASS
     StartTime = time.process_time()
@@ -138,7 +139,7 @@ def build_equip_dicts(gapps, model_mrid):
             EquipDict[eqtype][eqid]['open'] = 1
         else: 
             EquipDict[eqtype][eqid]['open'] = 0
-    print('Processed ', i3+1, 'Switch objects in ', time.process_time() - StartTime, "seconds")
+    gapps_log.debug('Processed ' + str(i3+1) + ' Switch objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
 
     # Import all House objects
@@ -153,7 +154,7 @@ def build_equip_dicts(gapps, model_mrid):
         EquipDict[eqtype][eqid]['term1']=HouseQuery[i3]['tid']['value']
         EquipDict[eqtype][eqid]['node1']=HouseQuery[i3]['cnid']['value']
 
-    print('Processed ', i4+1, 'House objects in ', time.process_time() - StartTime, "seconds")
+    gapps_log.debug('Processed ' + str(i4+1) + ' House objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
     
     # Import all RatioTapChanger objects
     StartTime = time.process_time()
@@ -173,6 +174,6 @@ def build_equip_dicts(gapps, model_mrid):
         EquipDict[eqtype][eqid]['PowerTransformer'] = pxfid
         EquipDict[eqtype][eqid]['node'] = TapChangerQuery[i5]['cnid']['value']
         EquipDict[eqtype][eqid]['term'] = TapChangerQuery[i5]['tid']['value']
-    print('Processed ', i5+1, 'RatioTapChanger objects in ', time.process_time() - StartTime, "seconds")
+    gapps_log.debug('Processed ' + str(i5+1) + ' RatioTapChanger objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
         
     return ConnNodeDict, EquipDict
