@@ -21,6 +21,7 @@ def build_equip_dicts(gapps, model_mrid):
     
     # Initialize dictionary keys for all ConnectivityNode objects in model:
     StartTime = time.process_time()
+    i0=-1
     NodeQuery=topology.get_all_nodes(gapps,model_mrid)
     for i0 in range(len(NodeQuery)):
         node=NodeQuery[i0]['cnid']['value']

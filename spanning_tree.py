@@ -16,16 +16,16 @@ def local_spanning_tree(ConnNodeDict, TerminalsDict, NodeList, TermList, EquipDi
         if eqtype in ['Breaker', 'Fuse', 'LoadBreakSwitch', 'Recloser']:
         #, 'SynchronousMachine', 'PowerElectronicsConnection']:
             
-            if check_tree(EquipDict[eqtype][key]['node1'], Tree, Scope, key):
-                Tree[key].append(EquipDict[eqtype][key]['node1'])
-                FirstNode = 0
-                LastNode = 1
-            elif check_tree(EquipDict[eqtype][key]['node2'], Tree, Scope, key): 
+            #if check_tree(EquipDict[eqtype][key]['node1'], Tree, Scope, key):
+            #    Tree[key].append(EquipDict[eqtype][key]['node1'])
+            #    FirstNode = 0
+            #    LastNode = 1
+            #elif check_tree(EquipDict[eqtype][key]['node2'], Tree, Scope, key): 
                 Tree[key].append(EquipDict[eqtype][key]['node2'])
                 FirstNode = 0
                 LastNode = 1
-            else:
-                break
+           # else:
+           #     break
         else: # Then 2-terminal object
             not_in_tree = check_tree(EquipDict[eqtype][key]['node2'], Tree, Scope, key)
             if not_in_tree:
