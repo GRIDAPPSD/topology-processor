@@ -47,4 +47,4 @@ from . topologyprocessor import TopologyProcessor
 from . distributedtopology import DistributedTopology
 from . networkmodel import NetworkModel
 from . topologydictionary import TopologyDictionary
-from . topo_meas_queries import *
+

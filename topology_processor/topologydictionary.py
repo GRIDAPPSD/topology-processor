@@ -1,4 +1,4 @@
-class TopologyDictionary(GridAPPSD):
+class TopologyDictionary():
     
     def __init__(self, gapps, model_mrid):
         self.model_mrid = model_mrid
@@ -200,9 +200,9 @@ class TopologyDictionary(GridAPPSD):
                             LastNode = LastNode + 1
 
 
-            print("Processed topology from  " + str(key) + ' with ' + str(len(Tree[key]) + " buses")
+            print("Processed topology from  " + str(key) + ' with ' + str(len(Tree[key])) + " buses")
 
-        print("Processed " + str(len(Tree.keys()) - old_len), "topology trees containing " +  str(TotalNodes+len(Tree[key])), " buses in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        print("Processed " + str(len(Tree.keys()) - old_len) + "topology trees containing " + str(TotalNodes+len(Tree[key])) + " buses in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
         return Tree
     

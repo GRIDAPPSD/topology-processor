@@ -1,4 +1,4 @@
-class DistributedTopology(GridAPPSD):
+class DistributedTopology():
     
     def __init__(self, gapps):
         self.gapps = gapps

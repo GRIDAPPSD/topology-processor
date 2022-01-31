@@ -1,7 +1,7 @@
 import os, json, time
 from gridappsd import GridAPPSD, topics as t
 from gridappsd.topics import service_input_topic, service_output_topic
-from . import DistributedTopology, TopologyDictionary, NetworkModel
+import distributedtopology, topologydictionary, networkmodel
 
 class TopologyProcessor(GridAPPSD):
     
@@ -10,10 +10,12 @@ class TopologyProcessor(GridAPPSD):
 
     
     # GridAPPS-D service
-    def on_message(self):
+    def on_message(self, headers, message):
         
-        Topology = TopologyDictionary(self.gapps, model_mrid)
-        #service
+        print(headers)
+        print()
+        print(message)
+        print()
         
     def get_switch_areas(self, model_mrid):
         #topic = service_input_topic('topology-processor')
@@ -83,3 +85,18 @@ class TopologyProcessor(GridAPPSD):
             time = measurement["time"]
             eqid = meas_map[measid]
             SwitchDict[eqid]["open"] = measurement['value']
+            
+def _main():
+    topic = "/queue/goss.gridappsd.request.data.topology"
+    os.environ['GRIDAPPSD_USER'] = 'app_user'
+    os.environ['GRIDAPPSD_PASSWORD'] = '1234App'
+    gapps = GridAPPSD()
+    assert gapps.connected
+    topology = TopologyProcessor(gapps)
+    gapps.subscribe(topic, topology)
+    while True:
+        time.sleep(0.1)
+        
+if __name__ == "__main__":
+    _main()
+    
