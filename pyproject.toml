@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "gridappsd-topology-processor"
+version = "0.1.0"
+description = ""
+authors = ["C. Allwardt <3979063+craig8@users.noreply.github.com>"]
+packages = [
+    { include = "topology_processor"}
+]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+gridappsd-python = "^2.2.20211100"
+mock = "^4.0.3"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2.5"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
