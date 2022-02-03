@@ -1,6 +1,10 @@
+import time, json
+from topologydictionary import TopologyDictionary
+from networkmodel import NetworkModel
+
 class DistributedTopology():
     
-    def __init__(self, gapps):
+    def __init__(self, gapps, model_mrid):
         self.gapps = gapps
         self.Topology = TopologyDictionary(gapps, model_mrid)
         self.MVTopology = TopologyDictionary(gapps, model_mrid)

@@ -1,4 +1,5 @@
 from gridappsd import GridAPPSD
+import time, json
 import topo_meas_queries as queries
 
 class NetworkModel(GridAPPSD):
@@ -50,6 +51,8 @@ class NetworkModel(GridAPPSD):
             Topology.ConnNodeDict[node]['SynchronousMachine'] = []
             Topology.ConnNodeDict[node]['PowerElectronicsConnection'] = []
             Topology.ConnNodeDict[node]['Measurement'] = []
+            Topology.ConnNodeDict[node]['Feeder'] = []
+            Topology.ConnNodeDict[node]['Island'] = []
         print('Processed ' + str(i0+1) + ' ConnectivyNode objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
         # Import all measurements and associated objects:

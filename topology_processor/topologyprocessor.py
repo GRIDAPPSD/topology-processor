@@ -1,27 +1,51 @@
 import os, json, time
 from gridappsd import GridAPPSD, topics as t
 from gridappsd.topics import service_input_topic, service_output_topic
-import distributedtopology, topologydictionary, networkmodel
+from distributedtopology import DistributedTopology
+from topologydictionary import TopologyDictionary
+from networkmodel import NetworkModel
 
 class TopologyProcessor(GridAPPSD):
     
-    def __init__(self, gapps):
+    def __init__(self):
+        os.environ['GRIDAPPSD_APPLICATION_ID'] = 'gridappsd-topology-processor'
+        os.environ['GRIDAPPSD_APPLICATION_STATUS'] = 'STARTED'
+        os.environ['GRIDAPPSD_USER'] = 'app_user'
+        os.environ['GRIDAPPSD_PASSWORD'] = '1234App'
+        gapps = GridAPPSD()
+        assert gapps.connected
         self.gapps = gapps
 
     
     # GridAPPS-D service
     def on_message(self, headers, message):
+        model_mrid = message['modelID']
+        reply_to = headers['reply-to']
         
-        print(headers)
-        print()
-        print(message)
-        print()
+        if message['requestType'] == 'GET_SWITCH_AREAS':
+            message = self.get_switch_areas(model_mrid)
+            self.gapps.send(reply_to, message)
+            
+        elif message['requestType'] == 'GET_BASE_TOPOLOGY':
+            Topology = self.get_base_topology(model_mrid)
+            message = {
+                'feeder_id': model_mrid,
+                'feeders': Topology.Feeders,
+                'islands': Topology.Islands,
+                'connectivity_model': Topology.ConnNodeDict
+            }
+            self.gapps.send(reply_to, message)
+        
+        elif message['requestType'] == 'GET_SNAPSHOT_TOPOLOGY':
+            simulation_id = message['simulation_id']
+            timestamp = message['time']
+            message = self.get_snapshot_topology(model_mrid, simulation_id, timestamp)
+            self.gapps.send(reply_to, message)
+            
         
     def get_switch_areas(self, model_mrid):
-        #topic = service_input_topic('topology-processor')
-        DistTopo = DistributedTopology(self.gapps)
+        DistTopo = DistributedTopology(self.gapps, model_mrid)
         message = DistTopo.create_switch_areas(model_mrid)
-        # push message to API
         return message
         
     def get_base_topology(self, model_mrid):
@@ -31,9 +55,8 @@ class TopologyProcessor(GridAPPSD):
         EqTypes = ['ACLineSegment', 'PowerTransformer', 'TransformerTank', 'SynchronousMachine']
         Topology.build_linknet(EqTypes)
         Topology.update_switches()
-        Topol
-
-        
+        Topology.build_feeder_islands()
+        return Topology     
 
 
         
@@ -87,12 +110,12 @@ class TopologyProcessor(GridAPPSD):
             SwitchDict[eqid]["open"] = measurement['value']
             
 def _main():
-    topic = "/queue/goss.gridappsd.request.data.topology"
+    topic = "goss.gridappsd.request.data.topology"
     os.environ['GRIDAPPSD_USER'] = 'app_user'
     os.environ['GRIDAPPSD_PASSWORD'] = '1234App'
     gapps = GridAPPSD()
     assert gapps.connected
-    topology = TopologyProcessor(gapps)
+    topology = TopologyProcessor()
     gapps.subscribe(topic, topology)
     while True:
         time.sleep(0.1)
