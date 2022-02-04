@@ -12,6 +12,7 @@ class TopologyDictionary():
         self.TermList = []
         self.Feeders = {}
         self.Islands = {}
+        self.log = self.gapps.get_logger()
         Tree = {}
         
     # Builds LinkNet linked lists for all CIM classes specified by EqTypes
@@ -33,7 +34,7 @@ class TopologyDictionary():
                 self.ConnNodeDict[node]['list'] = 0
                 index = index+1
                 self.NodeList.append(node)
-        print("Processed ", len(MissingNodes), "missing nodes in "+ str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.debug("Processed " + str(len(MissingNodes)) + " missing nodes in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
         # Dump JSON copies of base LinkNet structure. These are used to rebuild topo after each switch change
         self.BaseConnDict = json.dumps(self.ConnNodeDict)
         self.BaseTermDict = json.dumps(self.TerminalsDict)
@@ -98,12 +99,8 @@ class TopologyDictionary():
                 else:
                     self.TerminalsDict[term1]['far'] = 0
                     self.ConnNodeDict[node1]['list'] = 0
-                    
-                        
-                    
 
-
-        print("Processed " + str(i2+1) + str(eqtype) + "objects in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.debug("Processed " + str(i2+1) + ' ' + str(eqtype) + " objects in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
         counter = old_counter+i2+1
         return index, counter
@@ -156,7 +153,7 @@ class TopologyDictionary():
                     self.TerminalsDict[term1]['next'] = self.ConnNodeDict[node2]['list']
                     self.ConnNodeDict[node2]['list'] = self.ConnNodeDict[node1]['list']
 
-        print("Processed " + str(i3+1) + "switch objects in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.debug("Processed " + str(i3+1) + "switch objects in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
     def build_feeder_islands(self):
         FeederTree = {}
@@ -165,7 +162,6 @@ class TopologyDictionary():
         
         # Iterate through all PowerTransfomer objects
         XfmrKeys = list(self.EquipDict['PowerTransformer'].keys())
-        print(XfmrKeys)
         StartTime = time.process_time()
         for i4 in range(len(XfmrKeys)):
             SubXfmr = XfmrKeys[i4]
@@ -174,7 +170,6 @@ class TopologyDictionary():
             volt2 = self.EquipDict['PowerTransformer'][SubXfmr]['volt2']
             if volt1 >= 34000 and 34000 >= volt2 >= 1000:
                 fdr = fdr + 1
-                print(SubXfmr)
                 self.spanning_tree('PowerTransformer', [SubXfmr], FeederTree, 'single') 
                  # Add nodes to Feeder dictionary
                 self.Feeders['feeder_' + str(fdr)] = {}
@@ -183,7 +178,7 @@ class TopologyDictionary():
                 # Add feeder to Node dictionary
                 for i5 in range(len(FeederTree[SubXfmr])): 
                     self.ConnNodeDict[FeederTree[SubXfmr][i5]]['Feeder'].append(('feeder_' + str(fdr)))
-        print('Processed ' + str(fdr + 1) + ' feeders in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.debug('Processed ' + str(fdr + 1) + ' feeders in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
         
         # Iterate through all SynchronousMachine objects
         StartTime = time.process_time()
@@ -208,11 +203,11 @@ class TopologyDictionary():
                         self.ConnNodeDict[IslandTree[DG][i7]]['Island'].append(('island_' + str(isl)))
                 else:
                     self.Islands['island_' + str(isl)]['SynchronousMachine'].append(DGKeys[i6])
-        print('Processed ' + str(isl + 1) + ' islands in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.debug('Processed ' + str(isl + 1) + ' islands in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
         
     
     def spanning_tree(self, eqtype, RootKeys, Tree, Scope):
-
+        root = ''
         TotalNodes=0
         old_len = len(Tree.keys())
         StartTime = time.process_time()
@@ -238,8 +233,7 @@ class TopologyDictionary():
                     
             # Otherwise, use both nodes    
             else: # Then 2-terminal object
-                print(root)
-                print(eqtype)
+
                 [not_in_tree, found] = self.check_tree(self.EquipDict[eqtype][root]['node2'], Tree, Scope, root)
                 if not_in_tree:
                     Tree[root].append(self.EquipDict[eqtype][root]['node1'])
@@ -269,9 +263,9 @@ class TopologyDictionary():
                             LastNode = LastNode + 1
 
 
-            print("Processed topology from  " + str(self.EquipDict[eqtype][root]['name']) + ' with ' + str(len(Tree[root])) + " buses")
+            self.log.debug("Processed topology from  " + str(root) + ' with ' + str(len(Tree[root])) + " buses")
 
-        print("Processed " + str(len(Tree.keys()) - old_len) + "topology trees containing " + str(TotalNodes+len(Tree[root])) + " buses in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        if root: self.log.debug("Processed " + str(len(Tree.keys()) - old_len) + " topology trees containing " + str(TotalNodes+len(Tree[root])) + " buses in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
         return Tree
     
