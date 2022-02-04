@@ -141,6 +141,10 @@ class NetworkModel(GridAPPSD):
             Topology.EquipDict[eqtype][eqid]['term2']=SwitchQuery[i3]['term2']['value']
             Topology.EquipDict[eqtype][eqid]['node1']=SwitchQuery[i3]['node1']['value']
             Topology.EquipDict[eqtype][eqid]['node2']=SwitchQuery[i3]['node2']['value']
+            if eqid not in Topology.ConnNodeDict[SwitchQuery[i3]['node1']['value']][eqtype]:
+                Topology.ConnNodeDict[SwitchQuery[i3]['node1']['value']][eqtype].append(eqid)
+            if eqid not in Topology.ConnNodeDict[SwitchQuery[i3]['node2']['value']][eqtype]:
+                Topology.ConnNodeDict[SwitchQuery[i3]['node2']['value']][eqtype].append(eqid)
             # Check if switch is open or closed in base model
             if SwitchQuery[i3]['open']['value'] == 'false': 
                 Topology.EquipDict[eqtype][eqid]['open'] = 1
