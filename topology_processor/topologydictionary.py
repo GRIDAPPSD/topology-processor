@@ -156,6 +156,8 @@ class TopologyDictionary():
         self.log.debug("Processed " + str(i3+1) + "switch objects in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
     def build_feeder_islands(self):
+        self.Feeders = {}
+        self.Islands = {}
         FeederTree = {}
         fdr = -1
         isl = -1
@@ -189,7 +191,7 @@ class TopologyDictionary():
             DGNode = self.EquipDict['SynchronousMachine'][DG]['node1']
             [not_in_feeder, found] = self.check_tree(DGNode, FeederTree, 'all', DG)
             if not_in_feeder:
-                IslandTree[DG] = {}
+                #IslandTree[DG] = {}
                 [not_in_island, found] = self.check_tree(DGNode, IslandTree, 'all', DG)
                 if not_in_island:
                     isl = isl + 1

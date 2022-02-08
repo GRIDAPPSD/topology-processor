@@ -42,7 +42,7 @@ Created on Feb 4, 2021
 @author: Alexander Anderson, Rohit Jiniswale, Poorva Sharma
 """
 
-import os, time, json
+import os, time, json, argparse
 from gridappsd import GridAPPSD, topics as t
 from gridappsd.topics import service_output_topic, simulation_input_topic, simulation_output_topic
 from distributedtopology import DistributedTopology
@@ -54,11 +54,12 @@ class TopologyService(GridAPPSD):
     def __init__(self, gapps, Topology, simulation_id, model_mrid, SwitchMeasDict):
 
         self.gapps = gapps
-        self.publish_to_topic = service_output_topic('topology-processor', simulation_id)
+        self.publish_to_topic = service_output_topic('gridappsd-topology-processor', simulation_id)
         self.Topology = Topology
         self.SwitchMeasDict = SwitchMeasDict
         self.SwitchMeasKeys = list(self.SwitchMeasDict.keys())
         self.model_mrid = model_mrid
+        self.log = self.gapps.get_logger()
         
     def on_message(self, headers, message):
         old_topo = False
@@ -77,15 +78,17 @@ class TopologyService(GridAPPSD):
                     self.Topology.EquipDict[eqtype][eqid]['open'] = int(position)
                     old_topo = True
                     if position == 0:
-                        print('Detected switch ' + str(self.Topology.EquipDict[eqtype][eqid]['name']) + ' has opened at time ' + str(timestamp))
+                        self.log.debug('Detected switch ' + str(self.Topology.EquipDict[eqtype][eqid]['name']) + ' has opened at time ' + str(timestamp))
                     else:
-                        print('Detected switch ' + str(self.Topology.EquipDict[eqtype][eqid]['name']) + ' has closed at time ' + str(timestamp))
+                        self.log.debug('Detected switch ' + str(self.Topology.EquipDict[eqtype][eqid]['name']) + ' has closed at time ' + str(timestamp))
 
-        if old_topo:                            
+        if old_topo:     
+
             self.Topology.update_switches()
             self.Topology.build_feeder_islands()
             message = {
                 'feeder_id': self.model_mrid,
+                'timestamp': timestamp,
                 'feeders': json.dumps(self.Topology.Feeders),
                 'islands': json.dumps(self.Topology.Islands)
             }
@@ -96,42 +99,30 @@ class TopologyService(GridAPPSD):
 def _main():
     
       
-    #parser = argparse.ArgumentParser()
-    #parser.add_argument("simulation_id",
-    #                    help="Simulation id to use for responses on the message bus.")
-    #parser.add_argument("request",
-    #                    help="Simulation Request")
-    # These are now set through the docker container interface via env variables or defaulted to
-    # proper values.
-    #
-    # parser.add_argument("-u", "--user", default="system",
-    #                     help="The username to authenticate with the message bus.")
-    # parser.add_argument("-p", "--password", default="manager",
-    #                     help="The password to authenticate with the message bus.")
-    # parser.add_argument("-a", "--address", default="127.0.0.1",
-    #                     help="tcp address of the mesage bus.")
-    # parser.add_argument("--port", default=61613, type=int,
-    #                     help="the stomp port on the message bus.")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("simulation_id",
+                        help="Simulation id to use for responses on the message bus.")
+    parser.add_argument("request",
+                        help="Simulation Request")
+
+    opts = parser.parse_args()
     
-     # Authenticate with GridAPPS-D Platform
+    # Authenticate with GridAPPS-D Platform
     os.environ['GRIDAPPSD_APPLICATION_ID'] = 'gridappsd-topology-processor'
     os.environ['GRIDAPPSD_APPLICATION_STATUS'] = 'STARTED'
     os.environ['GRIDAPPSD_USER'] = 'app_user'
     os.environ['GRIDAPPSD_PASSWORD'] = '1234App'
-    model_mrid = "_EE71F6C9-56F0-4167-A14E-7F4C71F10EAA"
-    simulation_id = "1232326693"
+    
+    sim_request = json.loads(opts.request.replace("\'",""))
+    model_mrid = sim_request["power_system_config"]["Line_name"]
+    #model_mrid = "_EE71F6C9-56F0-4167-A14E-7F4C71F10EAA"
+    
+    simulation_id = opts.simulation_id
+    
     gapps = GridAPPSD(simulation_id)
     assert gapps.connected
     
-    #opts = parser.parse_args()
     sim_output_topic = simulation_output_topic(simulation_id)
-    #sim_input_topic = simulation_input_topic(opts.simulation_id)
-    #sim_log_topic = simulation_log_topic(opts.simulation_id)
-    #sim_request = json.loads(opts.request.replace("\'",""))
-    #model_mrid = sim_request["power_system_config"]["Line_name"]
-    #gapps = GridAPPSD(opts.simulation_id)
-    #logger = Logger(opts.simulation_id, gapps, sim_log_topic)
-    
 
     # Build Base Topology
     Topology = TopologyDictionary(gapps, model_mrid)
