@@ -83,7 +83,7 @@ class DistributedTopology():
                 SwitchArea['unaddressable_equipment'].extend(ConnNodeDict[node]['PowerTransformer'])
                 SwitchArea['unaddressable_equipment'].extend(ConnNodeDict[node]['TransformerTank'])
                 SwitchArea['unaddressable_equipment'].extend(ConnNodeDict[node]['Measurement'])
-                SwitchArea['connectivity_node'].append(ConnNodeDict[node]['name'])
+                SwitchArea['connectivity_node'].append(node)
                 # Identify PowerTransformer and TransformerTanks for secondary areas
                 DistXfmrTanks = ConnNodeDict[node]['TransformerTank'] 
                 DistXfmrs = ConnNodeDict[node]['PowerTransformer']
