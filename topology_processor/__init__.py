@@ -45,4 +45,6 @@ main GridAPPSD executable.
 
 from . topologyprocessor import TopologyProcessor
 from . distributedtopology import DistributedTopology
+from . networkmodel import NetworkModel
+from . topologydictionary import TopologyDictionary
 

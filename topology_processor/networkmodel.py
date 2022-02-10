@@ -1,10 +1,12 @@
 from gridappsd import GridAPPSD
+import time, json
 import topo_meas_queries as queries
 
 class NetworkModel(GridAPPSD):
 
     def __init__(self, gapps):
         self.gapps = gapps
+        self.log = self.gapps.get_logger()
     
     # This method builds equipment dictionaries for given model and Topology object
     def build_equip_dicts(self, model_mrid, Topology):
@@ -50,7 +52,9 @@ class NetworkModel(GridAPPSD):
             Topology.ConnNodeDict[node]['SynchronousMachine'] = []
             Topology.ConnNodeDict[node]['PowerElectronicsConnection'] = []
             Topology.ConnNodeDict[node]['Measurement'] = []
-        print('Processed ' + str(i0+1) + ' ConnectivyNode objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
+            Topology.ConnNodeDict[node]['Feeder'] = []
+            Topology.ConnNodeDict[node]['Island'] = []
+        self.log.debug('Processed ' + str(i0+1) + ' ConnectivyNode objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
         # Import all measurements and associated objects:
         StartTime = time.process_time()
@@ -79,7 +83,7 @@ class NetworkModel(GridAPPSD):
                 Topology.EquipDict[eqtype][eqid]['node1'] = node
                 Topology.EquipDict[eqtype][eqid]['term1'] = MeasurementQuery[i1]['trmid']['value']
             # NEED TO ADD LOGIC FOR 3-WINDING TRANSFORMERS LATER
-        print('Processed ' + str(i1+1) + ' Measurement objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.debug('Processed ' + str(i1+1) + ' Measurement objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
         # Import all ACLineSegment objects - SECOND PASS
         StartTime = time.process_time()
@@ -98,7 +102,7 @@ class NetworkModel(GridAPPSD):
             Topology.EquipDict[eqtype][eqid]['term2'] = LineQuery[i2]['term2']['value']
             Topology.EquipDict[eqtype][eqid]['node1'] = LineQuery[i2]['node1']['value']
             Topology.EquipDict[eqtype][eqid]['node2'] = LineQuery[i2]['node2']['value']
-        print('Processed ' + str(i2+1) + ' ACLineSegment objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.debug('Processed ' + str(i2+1) + ' ACLineSegment objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
         # Import all PowerTransformer and TransformerTank objects - SECOND PASS
         StartTime = time.process_time()
@@ -123,7 +127,7 @@ class NetworkModel(GridAPPSD):
             if 'phs' in XfmrQuery[i2]:  # Add phase if defined
                 Topology.EquipDict[eqtype][eqid]['phase' + seq] = XfmrQuery[i2]['phs']['value'] 
             else: Topology.EquipDict[eqtype][eqid]['phase' + seq] = {}
-        print('Processed ' + str(i2+1) + ' Transformer objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.debug('Processed ' + str(i2+1) + ' Transformer objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
         # Import all Breaker, Fuse, LoadBreakSwitch, and Recloser objects -  SECOND PASS
         StartTime = time.process_time()
@@ -138,12 +142,16 @@ class NetworkModel(GridAPPSD):
             Topology.EquipDict[eqtype][eqid]['term2']=SwitchQuery[i3]['term2']['value']
             Topology.EquipDict[eqtype][eqid]['node1']=SwitchQuery[i3]['node1']['value']
             Topology.EquipDict[eqtype][eqid]['node2']=SwitchQuery[i3]['node2']['value']
+            if eqid not in Topology.ConnNodeDict[SwitchQuery[i3]['node1']['value']][eqtype]:
+                Topology.ConnNodeDict[SwitchQuery[i3]['node1']['value']][eqtype].append(eqid)
+            if eqid not in Topology.ConnNodeDict[SwitchQuery[i3]['node2']['value']][eqtype]:
+                Topology.ConnNodeDict[SwitchQuery[i3]['node2']['value']][eqtype].append(eqid)
             # Check if switch is open or closed in base model
             if SwitchQuery[i3]['open']['value'] == 'false': 
                 Topology.EquipDict[eqtype][eqid]['open'] = 1
             else: 
                 Topology.EquipDict[eqtype][eqid]['open'] = 0
-        print('Processed ' + str(i3+1) + ' Switch objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.debug('Processed ' + str(i3+1) + ' Switch objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
 
         # Import all House objects
@@ -158,7 +166,7 @@ class NetworkModel(GridAPPSD):
             Topology.EquipDict[eqtype][eqid]['term1']=HouseQuery[i3]['tid']['value']
             Topology.EquipDict[eqtype][eqid]['node1']=HouseQuery[i3]['cnid']['value']
 
-        print('Processed ' + str(i4+1) + ' House objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.debug('Processed ' + str(i4+1) + ' House objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
         # Import all RatioTapChanger objects
         StartTime = time.process_time()
@@ -167,16 +175,20 @@ class NetworkModel(GridAPPSD):
         i5 = -1
         for i5 in range(len(TapChangerQuery)):
             eqid = TapChangerQuery[i5]['pxfid']['value']
-            tankid = TapChangerQuery[i5]['tankid']['value']
-            pxfid = TapChangerQuery[i5]['pxfid']['value']
 
-            if tankid in Topology.EquipDict['TransformerTank']:
-                Topology.EquipDict[eqtype][eqid] = dict(Topology.EquipDict['TransformerTank'][tankid])
-            elif pxfid in EquipDict['PowerTransformer']:
-                Topology.EquipDict[eqtype][eqid] = dict(Topology.EquipDict['PowerTransformer'][pxfid])
+            if 'tankid' in TapChangerQuery[i5]:
+                tankid = TapChangerQuery[i5]['tankid']['value']
+                if tankid in Topology.EquipDict['TransformerTank']:                     
+                    Topology.EquipDict[eqtype][eqid] = dict(Topology.EquipDict['TransformerTank'][tankid])
+                    Topology.EquipDict[eqtype][eqid]['TransformerTank'] = tankid
+                    
+            if 'pxfid' in TapChangerQuery[i5]:
+                pxfid = TapChangerQuery[i5]['pxfid']['value']
+                if pxfid in Topology.EquipDict['PowerTransformer']:
+                    Topology.EquipDict[eqtype][eqid] = dict(Topology.EquipDict['PowerTransformer'][pxfid])
+                    Topology.EquipDict[eqtype][eqid]['PowerTransformer'] = pxfid
+                    
             Topology.EquipDict[eqtype][eqid]['name'] = TapChangerQuery[i5]['rname']['value']
-            Topology.EquipDict[eqtype][eqid]['TransformerTank'] = tankid
-            Topology.EquipDict[eqtype][eqid]['PowerTransformer'] = pxfid
             Topology.EquipDict[eqtype][eqid]['node'] = TapChangerQuery[i5]['cnid']['value']
             Topology.EquipDict[eqtype][eqid]['term'] = TapChangerQuery[i5]['tid']['value']
-        print('Processed ' + str(i5+1) + ' RatioTapChanger objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.debug('Processed ' + str(i5+1) + ' RatioTapChanger objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")

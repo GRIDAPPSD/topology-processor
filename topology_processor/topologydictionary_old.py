@@ -1,4 +1,6 @@
-class TopologyDictionary(GridAPPSD):
+import time, json
+
+class TopologyDictionary():
     
     def __init__(self, gapps, model_mrid):
         self.model_mrid = model_mrid
@@ -171,7 +173,7 @@ class TopologyDictionary(GridAPPSD):
                     LastNode = 1 # only 1 node, so initialize list at 0,1
             # Otherwise, use both nodes    
             else: # Then 2-terminal object
-                not_in_tree = self.check_tree(self.EquipDict[eqtype][key]['node2'], Tree, Scope, key)
+                [not_in_tree, found] = self.check_tree(self.EquipDict[eqtype][key]['node2'], Tree, Scope, key)
                 if not_in_tree:
                     Tree[key].append(self.EquipDict[eqtype][key]['node1'])
                     Tree[key].append(self.EquipDict[eqtype][key]['node2'])
@@ -187,7 +189,7 @@ class TopologyDictionary(GridAPPSD):
                     NextNode = self.TerminalsDict[self.TermList[NextTerm-1]]['far']
                     NextTerm = self.TerminalsDict[self.TermList[NextTerm-1]]['next']
                     node = self.NodeList[NextNode-1]
-                    not_in_tree = self.check_tree(node, Tree, Scope, key)
+                    [not_in_tree, found] = self.check_tree(node, Tree, Scope, key)
                     # Add node if not in another tree        
                     if not_in_tree:       
                         if self.ConnNodeDict[node]['nominalVoltage']:
@@ -200,7 +202,7 @@ class TopologyDictionary(GridAPPSD):
                             LastNode = LastNode + 1
 
 
-            print("Processed topology from  " + str(key) + ' with ' + str(len(Tree[key]) + " buses")
+            print('Processed topology from  ' + str(key) + ' with ' + str(len(Tree[key])) + ' buses')
 
         print("Processed " + str(len(Tree.keys()) - old_len), "topology trees containing " +  str(TotalNodes+len(Tree[key])), " buses in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
@@ -209,15 +211,20 @@ class TopologyDictionary(GridAPPSD):
     # function to check if a node is the spanning tree
     # use argument "all" to check all trees from all root nodes
     # use argument "single" to only check the single tree from current root node
-    def check_tree(self, node, Tree, Scope, key):
+    # node is ConnectivityNode mRID to be checked
+    # root is used to specify "single" tree root key 
+    def check_tree(self, node, Tree, Scope, root):
         not_in_tree = True
+        found = 'False'
         if Scope == 'all': 
             TreeKeys = list(Tree.keys())
             for i7 in range(len(TreeKeys)):
                 if node in Tree[TreeKeys[i7]]:
                     not_in_tree = False
+                    found = TreeKeys[i7]
                     break
         else: 
-            if node in Tree[key]: 
-                not_in_tree = False# Check if node already in all other tree
-        return not_in_tree
+            if node in Tree[root]: 
+                not_in_tree = False
+                found = root
+        return not_in_tree, found
