@@ -34,7 +34,7 @@ class TopologyDictionary():
                 self.ConnNodeDict[node]['list'] = 0
                 index = index+1
                 self.NodeList.append(node)
-        self.log.debug("Processed " + str(len(MissingNodes)) + " missing nodes in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.info("Processed " + str(len(MissingNodes)) + " missing nodes in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
         # Dump JSON copies of base LinkNet structure. These are used to rebuild topo after each switch change
         self.BaseConnDict = json.dumps(self.ConnNodeDict)
         self.BaseTermDict = json.dumps(self.TerminalsDict)
@@ -100,7 +100,7 @@ class TopologyDictionary():
                     self.TerminalsDict[term1]['far'] = 0
                     self.ConnNodeDict[node1]['list'] = 0
 
-        self.log.debug("Processed " + str(i2+1) + ' ' + str(eqtype) + " objects in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.info("Processed " + str(i2+1) + ' ' + str(eqtype) + " objects in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
         counter = old_counter+i2+1
         return index, counter
@@ -153,7 +153,7 @@ class TopologyDictionary():
                     self.TerminalsDict[term1]['next'] = self.ConnNodeDict[node2]['list']
                     self.ConnNodeDict[node2]['list'] = self.ConnNodeDict[node1]['list']
 
-        self.log.debug("Processed " + str(i3+1) + "switch objects in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.info("Processed " + str(i3+1) + "switch objects in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
     def build_feeder_islands(self):
         self.Feeders = {}
@@ -180,7 +180,7 @@ class TopologyDictionary():
                 # Add feeder to Node dictionary
                 for i5 in range(len(FeederTree[SubXfmr])): 
                     self.ConnNodeDict[FeederTree[SubXfmr][i5]]['Feeder'].append(('feeder_' + str(fdr)))
-        self.log.debug('Processed ' + str(fdr + 1) + ' feeders in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.info('Processed ' + str(fdr + 1) + ' feeders in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
         
         # Iterate through all SynchronousMachine objects
         StartTime = time.process_time()
@@ -205,7 +205,7 @@ class TopologyDictionary():
                         self.ConnNodeDict[IslandTree[DG][i7]]['Island'].append(('island_' + str(isl)))
                 else:
                     self.Islands['island_' + str(isl)]['SynchronousMachine'].append(DGKeys[i6])
-        self.log.debug('Processed ' + str(isl + 1) + ' islands in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.info('Processed ' + str(isl + 1) + ' islands in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
         
     
     def spanning_tree(self, eqtype, RootKeys, Tree, Scope):
@@ -265,9 +265,9 @@ class TopologyDictionary():
                             LastNode = LastNode + 1
 
 
-            self.log.debug("Processed topology from  " + str(root) + ' with ' + str(len(Tree[root])) + " buses")
+            self.log.info("Processed topology from  " + str(root) + ' with ' + str(len(Tree[root])) + " buses")
 
-        if root: self.log.debug("Processed " + str(len(Tree.keys()) - old_len) + " topology trees containing " + str(TotalNodes+len(Tree[root])) + " buses in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        if root: self.log.info("Processed " + str(len(Tree.keys()) - old_len) + " topology trees containing " + str(TotalNodes+len(Tree[root])) + " buses in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
         return Tree
     

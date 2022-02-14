@@ -54,7 +54,7 @@ class NetworkModel(GridAPPSD):
             Topology.ConnNodeDict[node]['Measurement'] = []
             Topology.ConnNodeDict[node]['Feeder'] = []
             Topology.ConnNodeDict[node]['Island'] = []
-        self.log.debug('Processed ' + str(i0+1) + ' ConnectivyNode objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.info('Processed ' + str(i0+1) + ' ConnectivyNode objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
         # Import all measurements and associated objects:
         StartTime = time.process_time()
@@ -83,7 +83,7 @@ class NetworkModel(GridAPPSD):
                 Topology.EquipDict[eqtype][eqid]['node1'] = node
                 Topology.EquipDict[eqtype][eqid]['term1'] = MeasurementQuery[i1]['trmid']['value']
             # NEED TO ADD LOGIC FOR 3-WINDING TRANSFORMERS LATER
-        self.log.debug('Processed ' + str(i1+1) + ' Measurement objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.info('Processed ' + str(i1+1) + ' Measurement objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
         # Import all ACLineSegment objects - SECOND PASS
         StartTime = time.process_time()
@@ -102,7 +102,7 @@ class NetworkModel(GridAPPSD):
             Topology.EquipDict[eqtype][eqid]['term2'] = LineQuery[i2]['term2']['value']
             Topology.EquipDict[eqtype][eqid]['node1'] = LineQuery[i2]['node1']['value']
             Topology.EquipDict[eqtype][eqid]['node2'] = LineQuery[i2]['node2']['value']
-        self.log.debug('Processed ' + str(i2+1) + ' ACLineSegment objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.info('Processed ' + str(i2+1) + ' ACLineSegment objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
         # Import all PowerTransformer and TransformerTank objects - SECOND PASS
         StartTime = time.process_time()
@@ -127,7 +127,7 @@ class NetworkModel(GridAPPSD):
             if 'phs' in XfmrQuery[i2]:  # Add phase if defined
                 Topology.EquipDict[eqtype][eqid]['phase' + seq] = XfmrQuery[i2]['phs']['value'] 
             else: Topology.EquipDict[eqtype][eqid]['phase' + seq] = {}
-        self.log.debug('Processed ' + str(i2+1) + ' Transformer objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.info('Processed ' + str(i2+1) + ' Transformer objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
         # Import all Breaker, Fuse, LoadBreakSwitch, and Recloser objects -  SECOND PASS
         StartTime = time.process_time()
@@ -151,7 +151,7 @@ class NetworkModel(GridAPPSD):
                 Topology.EquipDict[eqtype][eqid]['open'] = 1
             else: 
                 Topology.EquipDict[eqtype][eqid]['open'] = 0
-        self.log.debug('Processed ' + str(i3+1) + ' Switch objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.info('Processed ' + str(i3+1) + ' Switch objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
 
         # Import all House objects
@@ -166,7 +166,7 @@ class NetworkModel(GridAPPSD):
             Topology.EquipDict[eqtype][eqid]['term1']=HouseQuery[i3]['tid']['value']
             Topology.EquipDict[eqtype][eqid]['node1']=HouseQuery[i3]['cnid']['value']
 
-        self.log.debug('Processed ' + str(i4+1) + ' House objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.info('Processed ' + str(i4+1) + ' House objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
         # Import all RatioTapChanger objects
         StartTime = time.process_time()
@@ -191,4 +191,4 @@ class NetworkModel(GridAPPSD):
             Topology.EquipDict[eqtype][eqid]['name'] = TapChangerQuery[i5]['rname']['value']
             Topology.EquipDict[eqtype][eqid]['node'] = TapChangerQuery[i5]['cnid']['value']
             Topology.EquipDict[eqtype][eqid]['term'] = TapChangerQuery[i5]['tid']['value']
-        self.log.debug('Processed ' + str(i5+1) + ' RatioTapChanger objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        self.log.info('Processed ' + str(i5+1) + ' RatioTapChanger objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")

@@ -16,6 +16,8 @@ class TopologyProcessor(GridAPPSD):
         assert gapps.connected
         self.gapps = gapps
         self.log = self.gapps.get_logger()
+        
+        self.log.info('Topology daemon started')
 
     
     # GridAPPS-D service
