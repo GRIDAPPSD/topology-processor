@@ -16,11 +16,13 @@ class TopologyProcessor(GridAPPSD):
         assert gapps.connected
         self.gapps = gapps
         self.log = self.gapps.get_logger()
+        
+        self.log.info('Topology daemon started')
 
     
     # GridAPPS-D service
     def on_message(self, headers, message):
-        model_mrid = message['model_id']
+        model_mrid = message['modelID']
         reply_to = headers['reply-to']
         
         if message['requestType'] == 'GET_SWITCH_AREAS':
@@ -29,24 +31,27 @@ class TopologyProcessor(GridAPPSD):
             
         elif message['requestType'] == 'GET_BASE_TOPOLOGY':
             Topology = self.get_base_topology(model_mrid)
-            message = {
-                'feeder_id': model_mrid,
-                'feeders': json.dumps(Topology.Feeders),
-                'islands': json.dumps(Topology.Islands),
-                'connectivity': json.dumps(Topology.ConnNodeDict),
-                'equipment': json.dumps(Topology.EquipDict)
+            message = {  
+                'modelID': model_mrid,
+                'feeders': Topology.Feeders,
+                'islands': Topology.Islands,
+                'connectivity': Topology.ConnNodeDict,
+                'equipment': Topology.EquipDict
             }
             self.gapps.send(reply_to, message)
         
         elif message['requestType'] == 'GET_SNAPSHOT_TOPOLOGY':
-            Topology = self.get_snapshot_topology(model_mrid, message['simulation_id'], message['timestamp'])
+            [Topology, timestamp] = self.get_snapshot_topology(model_mrid, message['simulationID'], message['timestamp'])
             message = {
-                'feeder_id': model_mrid,
-                'feeders': json.dumps(Topology.Feeders),
-                'islands': json.dumps(Topology.Islands)
+                'modelID': model_mrid,
+                'feeders': Topology.Feeders,
+                'islands': Topology.Islands,
+                'timestamp': timestamp
             }
             self.gapps.send(reply_to, message)
-            
+        else:
+            message = "No valid requestType specified"
+            self.gapps.send(reply_to, message)
         
     def get_switch_areas(self, model_mrid):
         self.log.info('Building switch areas for ' + str(model_mrid))
@@ -109,14 +114,14 @@ class TopologyProcessor(GridAPPSD):
 
 
         influx_response = self.gapps.get_response(t.TIMESERIES, message) # Pass API call
-
+        import time
         counter=0
         while not influx_response['data'] and counter <5:
-            influx_response = gapps.get_response(t.TIMESERIES, message) # Pass API call
-            self.log.debug('Waiting 10 seconds for data to be written to Timeseries Database')
-            _time.sleep(10)
+            influx_response = self.gapps.get_response(t.TIMESERIES, message) # Pass API call
+            self.log.info('Waiting 10 seconds for data to be written to Timeseries Database')
+            time.sleep(10)
             counter=counter+1
-            if counter==5: self.log.debug("No Timeseries data found. Returning default topology")
+            if counter==5: self.log.info("No Timeseries data found. Returning default topology")
 
         # Parse timeseries data for current switch positions
         for measurement in influx_response["data"]:
@@ -130,7 +135,7 @@ class TopologyProcessor(GridAPPSD):
         Topology.update_switches()
         Topology.build_feeder_islands()
         
-        return Topology
+        return Topology, time
             
 def _main():
     topic = "goss.gridappsd.request.data.topology"

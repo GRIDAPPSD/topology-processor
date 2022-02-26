@@ -4,12 +4,14 @@ from gridappsd.topics import service_output_topic
 os.environ['GRIDAPPSD_USER'] = 'tutorial_user'
 os.environ['GRIDAPPSD_PASSWORD'] = '12345!'
 
-def TopologySubscriber(header, message):
+def TopologySubscriber(headers, message):
     global timestamp, feeders, islands   
     feeder_id = message['feeder_id']
     timestamp = message['timestamp']
-    feeders = json.loads(message['feeders'])
-    islands = json.loads(message['islands'])
+    feeders = message['feeders']
+    islands = message['islands']
+    
+
 
     print('received message at time ', timestamp, 'for model ', feeder_id)
     

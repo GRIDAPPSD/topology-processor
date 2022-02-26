@@ -78,9 +78,9 @@ class TopologyService(GridAPPSD):
                     self.Topology.EquipDict[eqtype][eqid]['open'] = int(position)
                     old_topo = True
                     if position == 0:
-                        self.log.debug('Detected switch ' + str(self.Topology.EquipDict[eqtype][eqid]['name']) + ' has opened at time ' + str(timestamp))
+                        self.log.info('Detected switch ' + str(self.Topology.EquipDict[eqtype][eqid]['name']) + ' has opened at time ' + str(timestamp))
                     else:
-                        self.log.debug('Detected switch ' + str(self.Topology.EquipDict[eqtype][eqid]['name']) + ' has closed at time ' + str(timestamp))
+                        self.log.info('Detected switch ' + str(self.Topology.EquipDict[eqtype][eqid]['name']) + ' has closed at time ' + str(timestamp))
 
         if old_topo:     
 
@@ -89,8 +89,8 @@ class TopologyService(GridAPPSD):
             message = {
                 'feeder_id': self.model_mrid,
                 'timestamp': timestamp,
-                'feeders': json.dumps(self.Topology.Feeders),
-                'islands': json.dumps(self.Topology.Islands)
+                'feeders': self.Topology.Feeders,
+                'islands': self.Topology.Islands
             }
             self.gapps.send(self.publish_to_topic, message)
                 
@@ -108,10 +108,10 @@ def _main():
     opts = parser.parse_args()
     
     # Authenticate with GridAPPS-D Platform
-    os.environ['GRIDAPPSD_APPLICATION_ID'] = 'gridappsd-topology-processor'
+    os.environ['GRIDAPPSD_APPLICATION_ID'] = 'gridappsd-topology-service'
     os.environ['GRIDAPPSD_APPLICATION_STATUS'] = 'STARTED'
-    os.environ['GRIDAPPSD_USER'] = 'app_user'
-    os.environ['GRIDAPPSD_PASSWORD'] = '1234App'
+    os.environ['GRIDAPPSD_USER'] = 'system'
+    os.environ['GRIDAPPSD_PASSWORD'] = 'manager'
     
     sim_request = json.loads(opts.request.replace("\'",""))
     model_mrid = sim_request["power_system_config"]["Line_name"]
