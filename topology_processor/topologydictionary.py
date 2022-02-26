@@ -120,7 +120,7 @@ class TopologyDictionary():
         self.TerminalsDict = json.loads(self.BaseTermDict)
 
         StartTime = time.process_time()
-
+        i3 = -1
         for i3 in range(len(SwitchKeys)):
 
             node1=SwitchDict[SwitchKeys[i3]]['node1']

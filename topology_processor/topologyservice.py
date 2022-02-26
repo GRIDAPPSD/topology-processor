@@ -89,8 +89,8 @@ class TopologyService(GridAPPSD):
             message = {
                 'feeder_id': self.model_mrid,
                 'timestamp': timestamp,
-                'feeders': json.dumps(self.Topology.Feeders),
-                'islands': json.dumps(self.Topology.Islands)
+                'feeders': self.Topology.Feeders,
+                'islands': self.Topology.Islands
             }
             self.gapps.send(self.publish_to_topic, message)
                 
