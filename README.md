@@ -1,8 +1,6 @@
 # GridAPPS-D Toolbox Topology Processor
 
-The Topology Processor is a lightweight service based on the LinkNet(TM) data structure for mapping CIM ConnectivityNodes and Terminals. 
-
-(LinkNet is a trademark of Incremental Systems Corporation and is used with permission).
+The Topology Processor is a lightweight service based on the LinkNet(TM) open-source data structure for mapping CIM ConnectivityNodes and Terminals developed by IncSys Corp. LinkNet(TM) is a trademark of Incremental Systems Corporation and is used with permission.
 
 ## Real-time Topology Processor Service
 
