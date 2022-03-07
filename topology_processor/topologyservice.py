@@ -38,8 +38,9 @@
 # UNITED STATES DEPARTMENT OF ENERGY under Contract DE-AC05-76RL01830
 # -------------------------------------------------------------------------------
 """
-Created on Feb 4, 2021
-@author: Alexander Anderson, Rohit Jiniswale, Poorva Sharma
+Created on Feb 4, 2022
+@author: Alexander Anderson, Rohit Jiniswale, Poorva Sharma, Robin Podmore
+This service uses the LinkNet(TM) open-source power system model representation framework developed by IncSys Corp
 """
 
 import os, time, json, argparse
