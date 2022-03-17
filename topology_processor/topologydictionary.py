@@ -182,6 +182,23 @@ class TopologyDictionary():
                     self.ConnNodeDict[FeederTree[SubXfmr][i5]]['Feeder'].append(('feeder_' + str(fdr)))
         self.log.info('Processed ' + str(fdr + 1) + ' feeders in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
         
+        # If no suitable PowerTransformer found, build from EnergySource
+        if not self.Feeders:
+            Sources = list(self.EquipDict['EnergySource'].keys())
+            StartTime = time.process_time()
+            for i4 in range(len(Sources)):
+                Sub = Sources[i4]
+                fdr = fdr + 1
+                self.spanning_tree('EnergySource', [Sub], FeederTree, 'single') 
+                 # Add nodes to Feeder dictionary
+                self.Feeders['feeder_' + str(fdr)] = {}
+                self.Feeders['feeder_' + str(fdr)]['EnergySource'] = Sub
+                self.Feeders['feeder_' + str(fdr)]['ConnectivityNode'] = FeederTree[Sub] 
+                # Add feeder to Node dictionary
+                for i5 in range(len(FeederTree[Sub])): 
+                    self.ConnNodeDict[FeederTree[Sub][i5]]['Feeder'].append(('feeder_' + str(fdr)))
+            self.log.info('Processed ' + str(fdr + 1) + ' feeders in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        
         # Iterate through all SynchronousMachine objects
         StartTime = time.process_time()
         IslandTree = {}
@@ -225,7 +242,7 @@ class TopologyDictionary():
                 FirstNode = 0
                 LastNode = 1 # only 1 node used, so initialize list at 0,1
             # If DER object, only has one node
-            elif eqtype in ['SynchronousMachine', 'PowerElectronicsConnection']:
+            elif eqtype in ['SynchronousMachine', 'PowerElectronicsConnection', 'EnergySource']:
                 #[not_in_tree, found] = self.check_tree(self.EquipDict[eqtype][root]['node1'], Tree, Scope, root)
                # if not_in_tree:
                 Tree[root].append(self.EquipDict[eqtype][root]['node1'])
