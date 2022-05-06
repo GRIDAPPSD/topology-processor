@@ -175,6 +175,7 @@ class TopologyDictionary():
                 self.spanning_tree('PowerTransformer', [SubXfmr], FeederTree, 'single') 
                  # Add nodes to Feeder dictionary
                 self.Feeders['feeder_' + str(fdr)] = {}
+                self.Feeders['feeder_' + str(fdr)]['root_node'] = self.EquipDict['PowerTransformer'][SubXfmr]['node2']
                 self.Feeders['feeder_' + str(fdr)]['PowerTransformer'] = SubXfmr
                 self.Feeders['feeder_' + str(fdr)]['ConnectivityNode'] = FeederTree[SubXfmr] 
                 # Add feeder to Node dictionary
@@ -192,7 +193,9 @@ class TopologyDictionary():
                 self.spanning_tree('EnergySource', [Sub], FeederTree, 'single') 
                  # Add nodes to Feeder dictionary
                 self.Feeders['feeder_' + str(fdr)] = {}
+                self.Feeders['feeder_' + str(fdr)]['root_node'] = self.EquipDict['EnergySource'][Sub]['node1']
                 self.Feeders['feeder_' + str(fdr)]['EnergySource'] = Sub
+                
                 self.Feeders['feeder_' + str(fdr)]['ConnectivityNode'] = FeederTree[Sub] 
                 # Add feeder to Node dictionary
                 for i5 in range(len(FeederTree[Sub])): 
