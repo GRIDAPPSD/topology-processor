@@ -52,7 +52,7 @@ from networkmodel import NetworkModel
 
 class TopologyService(GridAPPSD):
     
-    def __init__(self, gapps, Topology, simulation_id, model_mrid, SwitchMeasDict):
+    def __init__(self, gapps, Topology, simulation_id, model_mrid, SwitchMeasDict, start_time):
 
         self.gapps = gapps
         self.publish_to_topic = service_output_topic('gridappsd-topology-processor', simulation_id)
@@ -61,6 +61,7 @@ class TopologyService(GridAPPSD):
         self.SwitchMeasKeys = list(self.SwitchMeasDict.keys())
         self.model_mrid = model_mrid
         self.log = self.gapps.get_logger()
+        self.publish_message(start_time)
         
     def on_message(self, headers, message):
         old_topo = False
@@ -84,16 +85,18 @@ class TopologyService(GridAPPSD):
                         self.log.info('Detected switch ' + str(self.Topology.EquipDict[eqtype][eqid]['name']) + ' has closed at time ' + str(timestamp))
 
         if old_topo:     
-
             self.Topology.update_switches()
             self.Topology.build_feeder_islands()
-            message = {
-                'feeder_id': self.model_mrid,
-                'timestamp': timestamp,
-                'feeders': self.Topology.Feeders,
-                'islands': self.Topology.Islands
-            }
-            self.gapps.send(self.publish_to_topic, message)
+            self.publish_message(timestamp)
+            
+    def publish_message(self, timestamp):
+        message = {
+            'feeder_id': self.model_mrid,
+            'timestamp': timestamp,
+            'feeders': self.Topology.Feeders,
+            'islands': self.Topology.Islands
+        }
+        self.gapps.send(self.publish_to_topic, message)
                 
         
         
@@ -116,7 +119,7 @@ def _main():
     
     sim_request = json.loads(opts.request.replace("\'",""))
     model_mrid = sim_request["power_system_config"]["Line_name"]
-    #model_mrid = "_EE71F6C9-56F0-4167-A14E-7F4C71F10EAA"
+    start_time = sim_request["simulation_config"]["start_time"]
     
     simulation_id = opts.simulation_id
     
@@ -150,7 +153,7 @@ def _main():
             SwitchMeasDict[measid]['eqtype'] = measurement['eqtype']
             SwitchMeasDict[measid]['eqid'] = measurement["eqid"]
             
-    TopoService = TopologyService(gapps, Topology, simulation_id, model_mrid, SwitchMeasDict)
+    TopoService = TopologyService(gapps, Topology, simulation_id, model_mrid, SwitchMeasDict, start_time)
     gapps.subscribe(sim_output_topic, TopoService)
     while True:
         time.sleep(0.1)

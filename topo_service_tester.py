@@ -23,7 +23,7 @@ def TopologySubscriber(headers, message):
 
     for feeder_names in list(feeders.keys()):
         print('Topology Feeder', feeder_names, 'from substation')
-        print(feeders[feeder_names]['PowerTransformer'])
+        #print(feeders[feeder_names]['PowerTransformer'])
         
 def SimulationSubscriber(headers, message):
     if "output" in headers["destination"]:
