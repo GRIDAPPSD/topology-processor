@@ -44,6 +44,7 @@ class TopologyDictionary():
     # Three-winding transformers not yet supported
     def build_class_lists(self, eqtype, index, old_counter):
         i2 = -1
+        index2 = 0
         StartTime = time.process_time()
         EquipKeys = list(self.EquipDict[eqtype])
 
@@ -70,8 +71,10 @@ class TopologyDictionary():
                 # Create keys for new terminals
                 self.TerminalsDict[term2] = {}
                 self.TerminalsDict[term2]['ConnectivityNode'] = node2
-                self.TerminalsDict[term1]['term'] = 2*(i2+old_counter)+1
-                self.TerminalsDict[term2]['term'] = 2*(i2+old_counter)+2
+                self.TerminalsDict[term1]['term'] = 2*i2+old_counter+1
+                self.TerminalsDict[term2]['term'] = 2*i2+old_counter+2
+                #self.TerminalsDict[term1]['term'] = 2*(i2+old_counter)+1
+                #self.TerminalsDict[term2]['term'] = 2*(i2+old_counter)+2
                 self.TermList.append(term2)
                 # If node2 not in LinkNet , create new keys
                 if 'node' not in self.ConnNodeDict[node2]: 
@@ -88,10 +91,10 @@ class TopologyDictionary():
                 # 3. Populate Connectivity nodes list with terminals
                 self.ConnNodeDict[node1]['list'] = self.TerminalsDict[term1]['term']
                 self.ConnNodeDict[node2]['list'] = self.TerminalsDict[term2]['term']
-
+                index2 = index2 + 2
             # If one-terminal device, process only single terminal
             else:
-                self.TerminalsDict[term1]['term'] = i2+2*(old_counter)+1
+                self.TerminalsDict[term1]['term'] = i2+(old_counter)+1
                 self.TerminalsDict[term1]['next'] = 0
                 if self.ConnNodeDict[node1]['node'] == index:
                     self.TerminalsDict[term1]['far'] = index
@@ -99,10 +102,12 @@ class TopologyDictionary():
                 else:
                     self.TerminalsDict[term1]['far'] = 0
                     self.ConnNodeDict[node1]['list'] = 0
+                index2 = index2 + 1
 
         self.log.info("Processed " + str(i2+1) + ' ' + str(eqtype) + " objects in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
-
-        counter = old_counter+i2+1
+        print('i2 = ', i2)
+        print('old_counter = ', old_counter)
+        counter = old_counter+index2
         return index, counter
     
 
