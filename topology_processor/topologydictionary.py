@@ -105,8 +105,6 @@ class TopologyDictionary():
                 index2 = index2 + 1
 
         self.log.info("Processed " + str(i2+1) + ' ' + str(eqtype) + " objects in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
-        print('i2 = ', i2)
-        print('old_counter = ', old_counter)
         counter = old_counter+index2
         return index, counter
     
@@ -254,7 +252,9 @@ class TopologyDictionary():
                     for i7 in range(len(IslandTree[DER])): 
                         self.ConnNodeDict[IslandTree[DER][i7]]['Island'].append(('island_' + str(isl)))
                 else:
-                    self.Islands['island_' + str(isl)]['SynchronousMachine'].append(DGKeys[i6])
+                    if 'PowerElectronicsConnection' not in self.Islands['island_' + str(isl)]:
+                        self.Islands['island_' + str(isl)]['PowerElectronicsConnection'] = []
+                    self.Islands['island_' + str(isl)]['PowerElectronicsConnection'].append(DERKeys[i6])
         self.log.info('Processed ' + str(isl + 1) + ' islands in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")        
     
     def spanning_tree(self, eqtype, RootKeys, Tree, Scope):
