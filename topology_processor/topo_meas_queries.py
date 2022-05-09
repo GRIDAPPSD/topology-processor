@@ -261,3 +261,31 @@ def get_all_tapchangers(gapps, model_mrid):
     results = gapps.query_data(query = QueryTapMessage, timeout = 60)
     TapChangerQuery = results['data']['results']['bindings']
     return TapChangerQuery
+    
+def get_all_energy_sources(gapps, model_mrid):
+    QuerySourceMessage = """
+    # substation source - DistSubstation
+    PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+    PREFIX c:  <http://iec.ch/TC57/CIM100#>
+    SELECT ?name ?bus ?basev ?nomv ?node ?term ?source WHERE {
+     ?s r:type c:EnergySource.
+    # feeder selection options - if all commented out, query matches all feeders
+    VALUES ?fdrid {"%s"}
+     ?s c:Equipment.EquipmentContainer ?fdr.
+     ?fdr c:IdentifiedObject.mRID ?fdrid.
+     ?s c:IdentifiedObject.name ?name.
+     ?s c:ConductingEquipment.BaseVoltage ?bv.
+     ?bv c:BaseVoltage.nominalVoltage ?basev.
+     ?s c:EnergySource.nominalVoltage ?nomv.  
+     ?t c:Terminal.ConductingEquipment ?s.
+     ?t c:Terminal.ConnectivityNode ?cn. 
+     ?cn c:IdentifiedObject.name ?bus
+     bind(strafter(str(?t), "#") as ?term)
+     bind(strafter(str(?cn), "#") as ?node)
+     bind(strafter(str(?s), "#") as ?source)
+    }
+    ORDER by ?name
+    """%model_mrid
+    results = gapps.query_data(query = QuerySourceMessage, timeout = 60)
+    SourceQuery = results['data']['results']['bindings']
+    return SourceQuery

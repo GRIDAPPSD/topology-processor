@@ -44,6 +44,7 @@ class TopologyDictionary():
     # Three-winding transformers not yet supported
     def build_class_lists(self, eqtype, index, old_counter):
         i2 = -1
+        index2 = 0
         StartTime = time.process_time()
         EquipKeys = list(self.EquipDict[eqtype])
 
@@ -70,8 +71,10 @@ class TopologyDictionary():
                 # Create keys for new terminals
                 self.TerminalsDict[term2] = {}
                 self.TerminalsDict[term2]['ConnectivityNode'] = node2
-                self.TerminalsDict[term1]['term'] = 2*(i2+old_counter)+1
-                self.TerminalsDict[term2]['term'] = 2*(i2+old_counter)+2
+                self.TerminalsDict[term1]['term'] = 2*i2+old_counter+1
+                self.TerminalsDict[term2]['term'] = 2*i2+old_counter+2
+                #self.TerminalsDict[term1]['term'] = 2*(i2+old_counter)+1
+                #self.TerminalsDict[term2]['term'] = 2*(i2+old_counter)+2
                 self.TermList.append(term2)
                 # If node2 not in LinkNet , create new keys
                 if 'node' not in self.ConnNodeDict[node2]: 
@@ -88,10 +91,10 @@ class TopologyDictionary():
                 # 3. Populate Connectivity nodes list with terminals
                 self.ConnNodeDict[node1]['list'] = self.TerminalsDict[term1]['term']
                 self.ConnNodeDict[node2]['list'] = self.TerminalsDict[term2]['term']
-
+                index2 = index2 + 2
             # If one-terminal device, process only single terminal
             else:
-                self.TerminalsDict[term1]['term'] = i2+2*(old_counter)+1
+                self.TerminalsDict[term1]['term'] = i2+(old_counter)+1
                 self.TerminalsDict[term1]['next'] = 0
                 if self.ConnNodeDict[node1]['node'] == index:
                     self.TerminalsDict[term1]['far'] = index
@@ -99,10 +102,12 @@ class TopologyDictionary():
                 else:
                     self.TerminalsDict[term1]['far'] = 0
                     self.ConnNodeDict[node1]['list'] = 0
+                index2 = index2 + 1
 
         self.log.info("Processed " + str(i2+1) + ' ' + str(eqtype) + " objects in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
-
-        counter = old_counter+i2+1
+        print('i2 = ', i2)
+        print('old_counter = ', old_counter)
+        counter = old_counter+index2
         return index, counter
     
 
@@ -175,12 +180,32 @@ class TopologyDictionary():
                 self.spanning_tree('PowerTransformer', [SubXfmr], FeederTree, 'single') 
                  # Add nodes to Feeder dictionary
                 self.Feeders['feeder_' + str(fdr)] = {}
+                self.Feeders['feeder_' + str(fdr)]['root_node'] = self.EquipDict['PowerTransformer'][SubXfmr]['node2']
                 self.Feeders['feeder_' + str(fdr)]['PowerTransformer'] = SubXfmr
                 self.Feeders['feeder_' + str(fdr)]['ConnectivityNode'] = FeederTree[SubXfmr] 
                 # Add feeder to Node dictionary
                 for i5 in range(len(FeederTree[SubXfmr])): 
                     self.ConnNodeDict[FeederTree[SubXfmr][i5]]['Feeder'].append(('feeder_' + str(fdr)))
         self.log.info('Processed ' + str(fdr + 1) + ' feeders in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        
+        # If no suitable PowerTransformer found, build from EnergySource
+        if not self.Feeders:
+            Sources = list(self.EquipDict['EnergySource'].keys())
+            StartTime = time.process_time()
+            for i4 in range(len(Sources)):
+                Sub = Sources[i4]
+                fdr = fdr + 1
+                self.spanning_tree('EnergySource', [Sub], FeederTree, 'single') 
+                 # Add nodes to Feeder dictionary
+                self.Feeders['feeder_' + str(fdr)] = {}
+                self.Feeders['feeder_' + str(fdr)]['root_node'] = self.EquipDict['EnergySource'][Sub]['node1']
+                self.Feeders['feeder_' + str(fdr)]['EnergySource'] = Sub
+                
+                self.Feeders['feeder_' + str(fdr)]['ConnectivityNode'] = FeederTree[Sub] 
+                # Add feeder to Node dictionary
+                for i5 in range(len(FeederTree[Sub])): 
+                    self.ConnNodeDict[FeederTree[Sub][i5]]['Feeder'].append(('feeder_' + str(fdr)))
+            self.log.info('Processed ' + str(fdr + 1) + ' feeders in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
         
         # Iterate through all SynchronousMachine objects
         StartTime = time.process_time()
@@ -206,7 +231,31 @@ class TopologyDictionary():
                 else:
                     self.Islands['island_' + str(isl)]['SynchronousMachine'].append(DGKeys[i6])
         self.log.info('Processed ' + str(isl + 1) + ' islands in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
-        
+
+
+        # Iterate through all PowerElectronicsConnection objects
+        StartTime = time.process_time()
+        DERKeys = list(self.EquipDict['PowerElectronicsConnection'].keys())
+        for i6 in range(len(DERKeys)):
+            DER = DERKeys[i6]
+            DERNode = self.EquipDict['PowerElectronicsConnection'][DER]['node1']
+            [not_in_feeder, found] = self.check_tree(DERNode, FeederTree, 'all', DER)
+            if not_in_feeder:
+                #IslandTree[DG] = {}
+                [not_in_island, found] = self.check_tree(DERNode, IslandTree, 'all', DER)
+                if not_in_island:
+                    isl = isl + 1
+                    self.spanning_tree('PowerElectronicsConnection', [DER], IslandTree, 'single')
+                    self.Islands['island_' + str(isl)] = {}
+                    self.Islands['island_' + str(isl)]['PowerElectronicsConnection'] = [DER]
+                    self.Islands['island_' + str(isl)]['ConnectivityNode'] = IslandTree[DER] 
+                    
+                    # Add island to Node dictionary
+                    for i7 in range(len(IslandTree[DER])): 
+                        self.ConnNodeDict[IslandTree[DER][i7]]['Island'].append(('island_' + str(isl)))
+                else:
+                    self.Islands['island_' + str(isl)]['SynchronousMachine'].append(DGKeys[i6])
+        self.log.info('Processed ' + str(isl + 1) + ' islands in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")        
     
     def spanning_tree(self, eqtype, RootKeys, Tree, Scope):
         root = ''
@@ -225,7 +274,7 @@ class TopologyDictionary():
                 FirstNode = 0
                 LastNode = 1 # only 1 node used, so initialize list at 0,1
             # If DER object, only has one node
-            elif eqtype in ['SynchronousMachine', 'PowerElectronicsConnection']:
+            elif eqtype in ['SynchronousMachine', 'PowerElectronicsConnection', 'EnergySource']:
                 #[not_in_tree, found] = self.check_tree(self.EquipDict[eqtype][root]['node1'], Tree, Scope, root)
                # if not_in_tree:
                 Tree[root].append(self.EquipDict[eqtype][root]['node1'])

@@ -24,6 +24,7 @@ class NetworkModel(GridAPPSD):
         Topology.EquipDict['TransformerTank'] = {}    
         Topology.EquipDict['SynchronousMachine'] = {}
         Topology.EquipDict['PowerElectronicsConnection'] = {}
+        Topology.EquipDict['EnergySource'] = {}
 
         # Initialize dictionary keys for all ConnectivityNode objects in model:
         StartTime = time.process_time()
@@ -65,6 +66,8 @@ class NetworkModel(GridAPPSD):
             node = MeasurementQuery[i1]['cnid']['value']
             eqtype = MeasurementQuery[i1]['meastype']['value']
             eqid = MeasurementQuery[i1]['eqid']['value']
+            meastype = MeasurementQuery[i1]['type']['value']
+            measid = MeasurementQuery[i1]['measid']['value']
             # Associate measurement mRID with ConnectivityNode
             Topology.ConnNodeDict[node]['Measurement'].append(MeasurementQuery[i1]['measid']['value'])
             # Associate equipment mRID with ConnectivityNode if not already defined by prior measurement
@@ -73,6 +76,16 @@ class NetworkModel(GridAPPSD):
             # Create equipment dictionary entry if not already defined by prior measurement
             if eqid not in Topology.EquipDict[eqtype]: 
                 Topology.EquipDict[eqtype][eqid] = {}
+                #Topology.EquipDict[eqtype][eqid]['meas'] = {}
+                #Topology.EquipDict[eqtype][eqid]['meas']['PNV'] = []
+                #Topology.EquipDict[eqtype][eqid]['meas']['VA'] = []
+                #Topology.EquipDict[eqtype][eqid]['meas']['Pos'] = []
+                #Topology.EquipDict[eqtype][eqid]['meas']['A'] = []
+                #Topology.EquipDict[eqtype][eqid]['meas']['SoC'] = []
+                
+            # Associate measurement value with equipment
+            #Topology.EquipDict[eqtype][eqid]['meas'][meastype].append(measid)
+            
             # Associate ConnectivityNode with equipment mRID - FIRST PASS
             if 'node1' in Topology.EquipDict[eqtype][eqid]: # If one node already defined, then assume two-terminal branch
                 if Topology.EquipDict[eqtype][eqid]['node1'] != node:
@@ -189,6 +202,18 @@ class NetworkModel(GridAPPSD):
                     Topology.EquipDict[eqtype][eqid]['PowerTransformer'] = pxfid
                     
             Topology.EquipDict[eqtype][eqid]['name'] = TapChangerQuery[i5]['rname']['value']
-            Topology.EquipDict[eqtype][eqid]['node'] = TapChangerQuery[i5]['cnid']['value']
-            Topology.EquipDict[eqtype][eqid]['term'] = TapChangerQuery[i5]['tid']['value']
+            Topology.EquipDict[eqtype][eqid]['node1'] = TapChangerQuery[i5]['cnid']['value']
+            Topology.EquipDict[eqtype][eqid]['term1'] = TapChangerQuery[i5]['tid']['value']
         self.log.info('Processed ' + str(i5+1) + ' RatioTapChanger objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
+        
+        # Import all EnergySource objects
+        startTime = time.process_time()
+        SourceQuery = queries.get_all_energy_sources(self.gapps, model_mrid)
+        eqtype = 'EnergySource'
+        for i6 in range(len(SourceQuery)):
+            eqid = SourceQuery[i6]['source']['value']
+            if eqid not in Topology.EquipDict[eqtype]:
+                Topology.EquipDict[eqtype][eqid] = {}
+            Topology.EquipDict[eqtype][eqid]['name'] = SourceQuery[i6]['name']['value']
+            Topology.EquipDict[eqtype][eqid]['node1'] = SourceQuery[i6]['node']['value']
+            Topology.EquipDict[eqtype][eqid]['term1'] = SourceQuery[i6]['term']['value']
