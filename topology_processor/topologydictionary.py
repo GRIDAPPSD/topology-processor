@@ -233,29 +233,29 @@ class TopologyDictionary():
         self.log.info('Processed ' + str(isl + 1) + ' islands in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
 
 
-        # Iterate through all PowerElectronicsConnection objects
-        StartTime = time.process_time()
-        DERKeys = list(self.EquipDict['PowerElectronicsConnection'].keys())
-        for i6 in range(len(DERKeys)):
-            DER = DERKeys[i6]
-            DERNode = self.EquipDict['PowerElectronicsConnection'][DER]['node1']
-            [not_in_feeder, found] = self.check_tree(DERNode, FeederTree, 'all', DER)
-            if not_in_feeder:
-                #IslandTree[DG] = {}
-                [not_in_island, found] = self.check_tree(DERNode, IslandTree, 'all', DER)
-                if not_in_island:
-                    isl = isl + 1
-                    self.spanning_tree('PowerElectronicsConnection', [DER], IslandTree, 'single')
-                    self.Islands['island_' + str(isl)] = {}
-                    self.Islands['island_' + str(isl)]['PowerElectronicsConnection'] = [DER]
-                    self.Islands['island_' + str(isl)]['ConnectivityNode'] = IslandTree[DER] 
-                    
-                    # Add island to Node dictionary
-                    for i7 in range(len(IslandTree[DER])): 
-                        self.ConnNodeDict[IslandTree[DER][i7]]['Island'].append(('island_' + str(isl)))
-                else:
-                    self.Islands['island_' + str(isl)]['SynchronousMachine'].append(DGKeys[i6])
-        self.log.info('Processed ' + str(isl + 1) + ' islands in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")        
+#        # Iterate through all PowerElectronicsConnection objects
+#        StartTime = time.process_time()
+#        DERKeys = list(self.EquipDict['PowerElectronicsConnection'].keys())
+#        for i6 in range(len(DERKeys)):
+#            DER = DERKeys[i6]
+#            DERNode = self.EquipDict['PowerElectronicsConnection'][DER]['node1']
+#            [not_in_feeder, found] = self.check_tree(DERNode, FeederTree, 'all', DER)
+#            if not_in_feeder:
+#                #IslandTree[DG] = {}
+#                [not_in_island, found] = self.check_tree(DERNode, IslandTree, 'all', DER)
+#                if not_in_island:
+#                    isl = isl + 1
+#                    self.spanning_tree('PowerElectronicsConnection', [DER], IslandTree, 'single')
+#                    self.Islands['island_' + str(isl)] = {}
+#                    self.Islands['island_' + str(isl)]['PowerElectronicsConnection'] = [DER]
+#                    self.Islands['island_' + str(isl)]['ConnectivityNode'] = IslandTree[DER] 
+#                    
+#                    # Add island to Node dictionary
+#                    for i7 in range(len(IslandTree[DER])): 
+#                        self.ConnNodeDict[IslandTree[DER][i7]]['Island'].append(('island_' + str(isl)))
+#                else:
+#                    self.Islands['island_' + str(isl)]['SynchronousMachine'].append(DGKeys[i6])
+#        self.log.info('Processed ' + str(isl + 1) + ' islands in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")        
     
     def spanning_tree(self, eqtype, RootKeys, Tree, Scope):
         root = ''
