@@ -132,7 +132,7 @@ def _main():
     Topology = TopologyDictionary(gapps, model_mrid)
     network = NetworkModel(gapps)
     network.build_equip_dicts(model_mrid, Topology)
-    EqTypes = ['ACLineSegment', 'PowerTransformer', 'TransformerTank', 'SynchronousMachine']
+    EqTypes = ['ACLineSegment', 'PowerTransformer', 'TransformerTank', 'SynchronousMachine', 'PowerElectronicsConnection']
     Topology.build_linknet(EqTypes)
     Topology.update_switches()
     Topology.build_feeder_islands()

@@ -76,12 +76,12 @@ class NetworkModel(GridAPPSD):
             # Create equipment dictionary entry if not already defined by prior measurement
             if eqid not in Topology.EquipDict[eqtype]: 
                 Topology.EquipDict[eqtype][eqid] = {}
-                Topology.EquipDict[eqtype][eqid]['meas'] = {}
-                Topology.EquipDict[eqtype][eqid]['meas']['PNV'] = []
-                Topology.EquipDict[eqtype][eqid]['meas']['VA'] = []
-                Topology.EquipDict[eqtype][eqid]['meas']['Pos'] = []
-                Topology.EquipDict[eqtype][eqid]['meas']['A'] = []
-                Topology.EquipDict[eqtype][eqid]['meas']['SoC'] = []
+                #Topology.EquipDict[eqtype][eqid]['meas'] = {}
+                #Topology.EquipDict[eqtype][eqid]['meas']['PNV'] = []
+                #Topology.EquipDict[eqtype][eqid]['meas']['VA'] = []
+                #Topology.EquipDict[eqtype][eqid]['meas']['Pos'] = []
+                #Topology.EquipDict[eqtype][eqid]['meas']['A'] = []
+                #Topology.EquipDict[eqtype][eqid]['meas']['SoC'] = []
                 
             # Associate measurement value with equipment
             #Topology.EquipDict[eqtype][eqid]['meas'][meastype].append(measid)
