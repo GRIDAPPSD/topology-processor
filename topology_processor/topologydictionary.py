@@ -95,13 +95,14 @@ class TopologyDictionary():
             # If one-terminal device, process only single terminal
             else:
                 self.TerminalsDict[term1]['term'] = i2+(old_counter)+1
-                self.TerminalsDict[term1]['next'] = 0
-                if self.ConnNodeDict[node1]['node'] == index:
-                    self.TerminalsDict[term1]['far'] = index
-                    self.ConnNodeDict[node1]['list'] = self.TerminalsDict[term1]['term']
-                else:
-                    self.TerminalsDict[term1]['far'] = 0
-                    self.ConnNodeDict[node1]['list'] = 0
+                #self.TerminalsDict[term1]['next'] = 0
+                self.TerminalsDict[term1]['next'] = self.ConnNodeDict[node1]['list']
+                #if self.ConnNodeDict[node1]['node'] == index:
+                #    self.TerminalsDict[term1]['far'] = index
+                #    self.ConnNodeDict[node1]['list'] = self.TerminalsDict[term1]['term']
+                #else:
+                self.TerminalsDict[term1]['far'] = self.ConnNodeDict[node1]['node']
+                self.ConnNodeDict[node1]['list'] = self.TerminalsDict[term1]['term']
                 index2 = index2 + 1
 
         self.log.info("Processed " + str(i2+1) + ' ' + str(eqtype) + " objects in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
