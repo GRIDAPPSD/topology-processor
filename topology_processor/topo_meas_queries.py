@@ -289,3 +289,58 @@ def get_all_energy_sources(gapps, model_mrid):
     results = gapps.query_data(query = QuerySourceMessage, timeout = 60)
     SourceQuery = results['data']['results']['bindings']
     return SourceQuery
+    
+def get_all_batteries(gapps, model_mrid):
+    QueryBattMessage = """
+    # Storage - DistStorage
+    PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+    PREFIX c:  <http://iec.ch/TC57/CIM100#>
+    SELECT ?name ?eqid ?fdrid ?pecid ?termid ?cnid WHERE {
+     ?s r:type c:BatteryUnit.
+     ?s c:IdentifiedObject.name ?name.
+     ?pec c:PowerElectronicsConnection.PowerElectronicsUnit ?s.
+    
+     VALUES ?fdrid {"%s"}  
+     ?pec c:Equipment.EquipmentContainer ?fdr.
+     ?fdr c:IdentifiedObject.mRID ?fdrid.
+     ?pec c:IdentifiedObject.mRID ?pecid.
+     bind(strafter(str(?s),"#") as ?eqid).
+     ?t c:Terminal.ConductingEquipment ?pec.
+     ?t c:Terminal.ConnectivityNode ?cn. 
+     bind(strafter(str(?cn),"#") as ?cnid).
+     ?t c:IdentifiedObject.mRID ?termid.
+    
+    }
+    GROUP by ?name ?eqid ?fdrid ?pecid ?termid ?cnid
+    ORDER by ?name
+    """%model_mrid
+    results = gapps.query_data(query = QueryBattMessage, timeout = 60)
+    BattQuery = results['data']['results']['bindings']
+    return BattQuery
+    
+def get_all_photovoltaics(gapps, model_mrid):
+    QueryPVMessage = """
+    PREFIX r: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+    PREFIX c: <http://iec.ch/TC57/CIM100#>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    SELECT ?name ?eqid ?pecid ?cnid ?termid
+    WHERE {
+    VALUES ?feeder_mrid {"%s"}
+    ?s r:type c:PhotovoltaicUnit.
+    ?s c:IdentifiedObject.name ?name.
+    ?s c:IdentifiedObject.mRID ?eqid.
+    ?pec c:PowerElectronicsConnection.PowerElectronicsUnit ?s.
+    ?pec c:IdentifiedObject.mRID ?pecid.
+    ?pec c:Equipment.EquipmentContainer ?fdr.
+    ?fdr c:IdentifiedObject.mRID ?feeder_mrid.
+    ?t c:Terminal.ConductingEquipment ?pec.
+    ?t c:Terminal.ConnectivityNode ?cn.
+    bind(strafter(str(?cn),"#") as ?cnid).
+    ?t c:IdentifiedObject.mRID ?termid.
+    }
+    GROUP by ?name ?eqid ?pecid ?cnid ?termid
+    ORDER by ?name
+    """%model_mrid
+    results = gapps.query_data(query = QueryPVMessage, timeout = 60)
+    PVQuery = results['data']['results']['bindings']
+    return PVQuery

@@ -12,12 +12,14 @@ class NetworkModel(GridAPPSD):
     def build_equip_dicts(self, model_mrid, Topology):
         # Initialize all equipment dictionary keys
         Topology.EquipDict['ACLineSegment'] = {}
+        Topology.EquipDict['BatteryUnit'] = {}
         Topology.EquipDict['Breaker'] = {}
         Topology.EquipDict['EnergyConsumer'] = {}
         Topology.EquipDict['House'] = {}
         Topology.EquipDict['Fuse'] = {}
         Topology.EquipDict['LinearShuntCompensator'] = {}
         Topology.EquipDict['LoadBreakSwitch'] = {}
+        Topology.EquipDict['PhotovoltaicUnit'] = {}
         Topology.EquipDict['PowerTransformer'] = {}
         Topology.EquipDict['RatioTapChanger'] = {}
         Topology.EquipDict['Recloser'] = {}
@@ -40,12 +42,14 @@ class NetworkModel(GridAPPSD):
             else:
                 Topology.ConnNodeDict[node]['nominalVoltage'] = []
             Topology.ConnNodeDict[node]['ACLineSegment'] = []
+            Topology.ConnNodeDict[node]['BatteryUnit'] = []
             Topology.ConnNodeDict[node]['Breaker'] = []
             Topology.ConnNodeDict[node]['EnergyConsumer'] = []
             Topology.ConnNodeDict[node]['Fuse'] = []
             Topology.ConnNodeDict[node]['House'] = []
             Topology.ConnNodeDict[node]['LinearShuntCompensator'] = []
             Topology.ConnNodeDict[node]['LoadBreakSwitch'] = []
+            Topology.ConnNodeDict[node]['PhotovoltaicUnit'] = []
             Topology.ConnNodeDict[node]['PowerTransformer'] = []
             Topology.ConnNodeDict[node]['RatioTapChanger'] = []
             Topology.ConnNodeDict[node]['Recloser'] = []
@@ -217,3 +221,36 @@ class NetworkModel(GridAPPSD):
             Topology.EquipDict[eqtype][eqid]['name'] = SourceQuery[i6]['name']['value']
             Topology.EquipDict[eqtype][eqid]['node1'] = SourceQuery[i6]['node']['value']
             Topology.EquipDict[eqtype][eqid]['term1'] = SourceQuery[i6]['term']['value']
+            
+        # Import all BatteryUnit objects
+        startTime = time.process_time()
+        BattQuery = queries.get_all_batteries(self.gapps, model_mrid)
+        eqtype = 'BatteryUnit'
+        for i7 in range(len(BattQuery)):
+            eqid = BattQuery[i7]['eqid']['value']
+            node = BattQuery[i7]['cnid']['value']
+            if eqid not in Topology.EquipDict[eqtype]:
+                Topology.EquipDict[eqtype][eqid] = {}
+            Topology.EquipDict[eqtype][eqid]['name'] = BattQuery[i7]['name']['value']
+            Topology.EquipDict[eqtype][eqid]['node1'] = BattQuery[i7]['cnid']['value']
+            Topology.EquipDict[eqtype][eqid]['term1'] = BattQuery[i7]['termid']['value']
+            # Associate equipment mRID with ConnectivityNode if not already defined by prior measurement
+            if eqid not in Topology.ConnNodeDict[node][eqtype]: 
+                Topology.ConnNodeDict[node][eqtype].append(eqid)
+            
+        # Import all PhotovoltaicUnit objects
+        startTime = time.process_time()
+        PVQuery = queries.get_all_photovoltaics(self.gapps, model_mrid)
+        eqtype = 'PhotovoltaicUnit'
+        for i7 in range(len(PVQuery)):
+            eqid = PVQuery[i7]['eqid']['value']
+            node = PVQuery[i7]['cnid']['value']
+            if eqid not in Topology.EquipDict[eqtype]:
+                Topology.EquipDict[eqtype][eqid] = {}
+            Topology.EquipDict[eqtype][eqid]['name'] = PVQuery[i7]['name']['value']
+            Topology.EquipDict[eqtype][eqid]['node1'] = PVQuery[i7]['cnid']['value']
+            Topology.EquipDict[eqtype][eqid]['term1'] = PVQuery[i7]['termid']['value']
+            # Associate equipment mRID with ConnectivityNode if not already defined by prior measurement
+            if eqid not in Topology.ConnNodeDict[node][eqtype]: 
+                Topology.ConnNodeDict[node][eqtype].append(eqid)
+            
