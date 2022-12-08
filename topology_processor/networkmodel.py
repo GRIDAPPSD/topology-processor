@@ -206,8 +206,7 @@ class NetworkModel(GridAPPSD):
                     Topology.EquipDict[eqtype][eqid]['PowerTransformer'] = pxfid
                     
             Topology.EquipDict[eqtype][eqid]['name'] = TapChangerQuery[i5]['rname']['value']
-            Topology.EquipDict[eqtype][eqid]['node1'] = TapChangerQuery[i5]['cnid']['value']
-            Topology.EquipDict[eqtype][eqid]['term1'] = TapChangerQuery[i5]['tid']['value']
+ 
         self.log.info('Processed ' + str(i5+1) + ' RatioTapChanger objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
         
         # Import all EnergySource objects
