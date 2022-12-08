@@ -271,9 +271,11 @@ class TopologyDictionary():
 
             # If switch object, only use second node
             if eqtype in ['Breaker', 'Fuse', 'LoadBreakSwitch', 'Recloser']:
-                Tree[root].append(self.EquipDict[eqtype][root]['node2'])
-                FirstNode = 0
-                LastNode = 1 # only 1 node used, so initialize list at 0,1
+                [not_in_tree, found] = self.check_tree(self.EquipDict[eqtype][root]['node2'], Tree, Scope, root)
+                if not_in_tree:
+                    Tree[root].append(self.EquipDict[eqtype][root]['node2'])
+                    FirstNode = 0
+                    LastNode = 1 # only 1 node used, so initialize list at 0,1
             # If DER object, only has one node
             elif eqtype in ['SynchronousMachine', 'PowerElectronicsConnection', 'EnergySource']:
                 #[not_in_tree, found] = self.check_tree(self.EquipDict[eqtype][root]['node1'], Tree, Scope, root)
