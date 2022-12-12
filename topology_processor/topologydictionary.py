@@ -95,13 +95,14 @@ class TopologyDictionary():
             # If one-terminal device, process only single terminal
             else:
                 self.TerminalsDict[term1]['term'] = i2+(old_counter)+1
-                self.TerminalsDict[term1]['next'] = 0
-                if self.ConnNodeDict[node1]['node'] == index:
-                    self.TerminalsDict[term1]['far'] = index
-                    self.ConnNodeDict[node1]['list'] = self.TerminalsDict[term1]['term']
-                else:
-                    self.TerminalsDict[term1]['far'] = 0
-                    self.ConnNodeDict[node1]['list'] = 0
+                #self.TerminalsDict[term1]['next'] = 0
+                self.TerminalsDict[term1]['next'] = self.ConnNodeDict[node1]['list']
+                #if self.ConnNodeDict[node1]['node'] == index:
+                #    self.TerminalsDict[term1]['far'] = index
+                #    self.ConnNodeDict[node1]['list'] = self.TerminalsDict[term1]['term']
+                #else:
+                self.TerminalsDict[term1]['far'] = self.ConnNodeDict[node1]['node']
+                self.ConnNodeDict[node1]['list'] = self.TerminalsDict[term1]['term']
                 index2 = index2 + 1
 
         self.log.info("Processed " + str(i2+1) + ' ' + str(eqtype) + " objects in " + str(round(1000*(time.process_time() - StartTime))) + " ms")
@@ -270,9 +271,11 @@ class TopologyDictionary():
 
             # If switch object, only use second node
             if eqtype in ['Breaker', 'Fuse', 'LoadBreakSwitch', 'Recloser']:
-                Tree[root].append(self.EquipDict[eqtype][root]['node2'])
-                FirstNode = 0
-                LastNode = 1 # only 1 node used, so initialize list at 0,1
+                [not_in_tree, found] = self.check_tree(self.EquipDict[eqtype][root]['node2'], Tree, Scope, root)
+                if not_in_tree:
+                    Tree[root].append(self.EquipDict[eqtype][root]['node2'])
+                    FirstNode = 0
+                    LastNode = 1 # only 1 node used, so initialize list at 0,1
             # If DER object, only has one node
             elif eqtype in ['SynchronousMachine', 'PowerElectronicsConnection', 'EnergySource']:
                 #[not_in_tree, found] = self.check_tree(self.EquipDict[eqtype][root]['node1'], Tree, Scope, root)
