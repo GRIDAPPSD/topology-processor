@@ -1,6 +1,6 @@
 from gridappsd import GridAPPSD
 import time, json
-import topo_meas_queries as queries
+import topology_processor.topo_meas_queries as queries
 
 class NetworkModel(GridAPPSD):
 
