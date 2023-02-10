@@ -3,9 +3,9 @@ def _main():
     import os, json, time
     from gridappsd import GridAPPSD, topics as t
     from gridappsd.topics import service_input_topic, service_output_topic
-    from distributedtopology import DistributedTopology
-    from topologydictionary import TopologyDictionary
-    from networkmodel import NetworkModel
+    from topology_processor.distributedtopology import DistributedTopology
+    from topology_processor.topologydictionary import TopologyDictionary
+    from topology_processor.networkmodel import NetworkModel
 
     os.environ['GRIDAPPSD_APPLICATION_ID'] = 'gridappsd-topology-processor'
     os.environ['GRIDAPPSD_APPLICATION_STATUS'] = 'STARTED'

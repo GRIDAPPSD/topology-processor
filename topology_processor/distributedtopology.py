@@ -1,6 +1,6 @@
 import time, json
-from topologydictionary import TopologyDictionary
-from networkmodel import NetworkModel
+from topology_processor.topologydictionary import TopologyDictionary
+from topology_processor.networkmodel import NetworkModel
 
 class DistributedTopology():
     
@@ -41,13 +41,13 @@ class DistributedTopology():
     def create_output_message(self,Topology, MVTree, model_mrid):
         ConnNodeDict = Topology.ConnNodeDict
         # Initialize output message structure
-        DistAppStruct = {}
-        DistAppStruct['feeders'] = {}
-        DistAppStruct['feeders']['feeder_id'] = model_mrid
-        DistAppStruct['feeders']['addressable_equipment'] = []
-        DistAppStruct['feeders']['unaddressable_equipment'] = []
-        DistAppStruct['feeders']['connectivity_node'] = []
-        DistAppStruct['feeders']['switch_areas'] = []
+        self.DistAppStruct = {}
+        self.DistAppStruct['feeders'] = {}
+        self.DistAppStruct['feeders']['feeder_id'] = model_mrid
+        self.DistAppStruct['feeders']['addressable_equipment'] = []
+        self.DistAppStruct['feeders']['unaddressable_equipment'] = []
+        self.DistAppStruct['feeders']['connectivity_node'] = []
+        self.DistAppStruct['feeders']['switch_areas'] = []
         ProcessedNodes = [] # List to keep track of which nodes have been processed
         SwitchKeys = list(MVTree.keys()) # Get list of all switching devices from all CIM classes
         # Iterate through all switches
@@ -79,6 +79,8 @@ class DistributedTopology():
                 SwitchArea['addressable_equipment'].extend(ConnNodeDict[node]['PowerElectronicsConnection'])
                 SwitchArea['addressable_equipment'].extend(ConnNodeDict[node]['LinearShuntCompensator'])
                 SwitchArea['addressable_equipment'].extend(ConnNodeDict[node]['RatioTapChanger'])
+                SwitchArea['addressable_equipment'].extend(ConnNodeDict[node]['EnergyConsumer'])
+                SwitchArea['addressable_equipment'].extend(ConnNodeDict[node]['House'])
                 SwitchArea['addressable_equipment'].extend(ConnNodeDict[node]['BatteryUnit'])
                 SwitchArea['addressable_equipment'].extend(ConnNodeDict[node]['PhotovoltaicUnit'])
                 SwitchArea['unaddressable_equipment'].extend(ConnNodeDict[node]['ACLineSegment'])
@@ -102,28 +104,30 @@ class DistributedTopology():
 
 
             if SwitchArea['boundary_switches']: # Append switch area if not duplicate
-                DistAppStruct['feeders']['switch_areas'].append(dict(SwitchArea))
-                DistAppStruct['feeders']['addressable_equipment'].extend(SwitchArea['boundary_switches'])
-                DistAppStruct['feeders']['unaddressable_equipment'].extend(SwitchArea['unaddressable_equipment'])
+                self.DistAppStruct['feeders']['switch_areas'].append(dict(SwitchArea))
+                self.DistAppStruct['feeders']['addressable_equipment'].extend(SwitchArea['boundary_switches'])
+                self.DistAppStruct['feeders']['unaddressable_equipment'].extend(SwitchArea['unaddressable_equipment'])
 
         # Add missing nodes to feeder level (not in switch area or secondary area)
         AllNodes = list(ConnNodeDict.keys())
         MissingNodes = list(set(AllNodes).difference(ProcessedNodes))
         for i5 in range(len(MissingNodes)):
             node = MissingNodes[i5]
-            DistAppStruct['feeders']['addressable_equipment'].extend(ConnNodeDict[node]['SynchronousMachine'])
-            DistAppStruct['feeders']['addressable_equipment'].extend(ConnNodeDict[node]['PowerElectronicsConnection'])
-            DistAppStruct['feeders']['addressable_equipment'].extend(ConnNodeDict[node]['LinearShuntCompensator'])
-            DistAppStruct['feeders']['addressable_equipment'].extend(ConnNodeDict[node]['RatioTapChanger'])
-            DistAppStruct['feeders']['addressable_equipment'].extend(ConnNodeDict[node]['BatteryUnit'])
-            DistAppStruct['feeders']['addressable_equipment'].extend(ConnNodeDict[node]['PhotovoltaicUnit'])
-            DistAppStruct['feeders']['unaddressable_equipment'].extend(ConnNodeDict[node]['ACLineSegment'])
-            DistAppStruct['feeders']['unaddressable_equipment'].extend(ConnNodeDict[node]['PowerTransformer'])
-            DistAppStruct['feeders']['unaddressable_equipment'].extend(ConnNodeDict[node]['TransformerTank'])
-            DistAppStruct['feeders']['unaddressable_equipment'].extend(ConnNodeDict[node]['Measurement'])
-            DistAppStruct['feeders']['connectivity_node'].append(node)
+            self.DistAppStruct['feeders']['addressable_equipment'].extend(ConnNodeDict[node]['SynchronousMachine'])
+            self.DistAppStruct['feeders']['addressable_equipment'].extend(ConnNodeDict[node]['PowerElectronicsConnection'])
+            self.DistAppStruct['feeders']['addressable_equipment'].extend(ConnNodeDict[node]['LinearShuntCompensator'])
+            self.DistAppStruct['feeders']['addressable_equipment'].extend(ConnNodeDict[node]['RatioTapChanger'])
+            self.DistAppStruct['feeders']['addressable_equipment'].extend(ConnNodeDict[node]['EnergyConsumer'])
+            self.DistAppStruct['feeders']['addressable_equipment'].extend(ConnNodeDict[node]['House'])
+            self.DistAppStruct['feeders']['addressable_equipment'].extend(ConnNodeDict[node]['BatteryUnit'])
+            self.DistAppStruct['feeders']['addressable_equipment'].extend(ConnNodeDict[node]['PhotovoltaicUnit'])
+            self.DistAppStruct['feeders']['unaddressable_equipment'].extend(ConnNodeDict[node]['ACLineSegment'])
+            self.DistAppStruct['feeders']['unaddressable_equipment'].extend(ConnNodeDict[node]['PowerTransformer'])
+            self.DistAppStruct['feeders']['unaddressable_equipment'].extend(ConnNodeDict[node]['TransformerTank'])
+            self.DistAppStruct['feeders']['unaddressable_equipment'].extend(ConnNodeDict[node]['Measurement'])
+            self.DistAppStruct['feeders']['connectivity_node'].append(node)
 
-        return DistAppStruct
+        return self.DistAppStruct
     
     def create_dist_area(self, Topology, MVTree, Xfmrs, eqtype, SwitchArea):
         # Initialize secondary area dictionary
