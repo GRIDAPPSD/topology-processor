@@ -46,9 +46,9 @@ This service uses the LinkNet(TM) open-source power system model representation 
 import os, time, json, argparse
 from gridappsd import GridAPPSD, topics as t
 from gridappsd.topics import service_output_topic, simulation_input_topic, simulation_output_topic
-from distributedtopology import DistributedTopology
-from topologydictionary import TopologyDictionary
-from networkmodel import NetworkModel
+from topology_processor.distributedtopology import DistributedTopology
+from topology_processor.topologydictionary import TopologyDictionary
+from topology_processor.networkmodel import NetworkModel
 
 class TopologyService(GridAPPSD):
     

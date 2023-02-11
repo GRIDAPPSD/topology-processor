@@ -1,6 +1,7 @@
 # Custom SPARQL queries to obtain all equipment needed to build feeder topology
 
-# Get all measurements points for all equipment from Blazegraph Database
+    
+    # Get all measurements points for all equipment from Blazegraph Database
 def get_all_measurements(gapps, model_mrid):
     QueryMeasurementMessage="""
         # list all measurements, with buses and equipments - DistMeasurement
@@ -32,13 +33,13 @@ def get_all_measurements(gapps, model_mrid):
 
         } ORDER BY ?cnid ?type
         """%model_mrid
-    
+
     results = gapps.query_data(query = QueryMeasurementMessage, timeout = 60)
     MeasurementQuery = results['data']['results']['bindings']
     return MeasurementQuery
-    
-    
-    
+
+
+
 # Get all ConnectivityNode and TopologicalNode objects
 def get_all_nodes(gapps, model_mrid):
     QueryNodeMessage="""
@@ -56,7 +57,7 @@ def get_all_nodes(gapps, model_mrid):
         ?fdr c:IdentifiedObject.name ?feeder.
         ?trm c:Terminal.ConnectivityNode ?bus.
         ?trm c:Terminal.ConductingEquipment ?ce.
-        
+
         OPTIONAL {
         ?ce  c:ConductingEquipment.BaseVoltage ?bv.
         ?bv  c:BaseVoltage.nominalVoltage ?nomu.
@@ -116,7 +117,7 @@ def get_all_switches(gapps, model_mrid):
     results = gapps.query_data(query = QuerySwitchMessage, timeout = 60)
     SwitchQuery = results['data']['results']['bindings']
     return SwitchQuery
-    
+
 def get_all_transformers(gapps,model_mrid):
     QueryXfmrMessage="""
         # list all the terminals connected to a TransformerEnd for CIMWriter
@@ -192,7 +193,7 @@ def get_all_lines(gapps, model_mrid):
                 OPTIONAL {?acp c:ACLineSegmentPhase.ACLineSegment ?s.
                 ?acp c:ACLineSegmentPhase.phase ?phsraw.
                 bind(strafter(str(?phsraw),"SinglePhaseKind.") as ?phs) }
-        
+
         } ORDER BY ?name ?phs
         }
         GROUP BY ?name ?bus1 ?bus2 ?id ?tname1 ?term1 ?tname2 ?term2 ?node1 ?node2 ?tpnode1 ?tpnode2
@@ -261,7 +262,7 @@ def get_all_tapchangers(gapps, model_mrid):
     results = gapps.query_data(query = QueryTapMessage, timeout = 60)
     TapChangerQuery = results['data']['results']['bindings']
     return TapChangerQuery
-    
+
 def get_all_energy_sources(gapps, model_mrid):
     QuerySourceMessage = """
     # substation source - DistSubstation
@@ -289,7 +290,7 @@ def get_all_energy_sources(gapps, model_mrid):
     results = gapps.query_data(query = QuerySourceMessage, timeout = 60)
     SourceQuery = results['data']['results']['bindings']
     return SourceQuery
-    
+
 def get_all_batteries(gapps, model_mrid):
     QueryBattMessage = """
     # Storage - DistStorage
@@ -299,7 +300,7 @@ def get_all_batteries(gapps, model_mrid):
      ?s r:type c:BatteryUnit.
      ?s c:IdentifiedObject.name ?name.
      ?pec c:PowerElectronicsConnection.PowerElectronicsUnit ?s.
-    
+
      VALUES ?fdrid {"%s"}  
      ?pec c:Equipment.EquipmentContainer ?fdr.
      ?fdr c:IdentifiedObject.mRID ?fdrid.
@@ -309,7 +310,7 @@ def get_all_batteries(gapps, model_mrid):
      ?t c:Terminal.ConnectivityNode ?cn. 
      bind(strafter(str(?cn),"#") as ?cnid).
      ?t c:IdentifiedObject.mRID ?termid.
-    
+
     }
     GROUP by ?name ?eqid ?fdrid ?pecid ?termid ?cnid
     ORDER by ?name
@@ -317,7 +318,7 @@ def get_all_batteries(gapps, model_mrid):
     results = gapps.query_data(query = QueryBattMessage, timeout = 60)
     BattQuery = results['data']['results']['bindings']
     return BattQuery
-    
+
 def get_all_photovoltaics(gapps, model_mrid):
     QueryPVMessage = """
     PREFIX r: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
