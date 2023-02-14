@@ -1,7 +1,7 @@
 # from gridappsd import GridAPPSD
 import time, json
 import topology_processor.topo_meas_queries as queries
-from topology_processor.blazegraph import BlazegraphConnection
+from topology_processor.blazegraph_connection import BlazegraphConnection
 import sys
 class NetworkModel():
 

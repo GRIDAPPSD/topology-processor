@@ -1,0 +1,26 @@
+
+from gridappsd import GridAPPSD
+import os
+
+class GridAPPSDConnection():
+    def connect(self):
+        os.environ['GRIDAPPSD_APPLICATION_ID'] = 'gridappsd-topology-processor'
+        os.environ['GRIDAPPSD_APPLICATION_STATUS'] = 'STARTED'
+        os.environ['GRIDAPPSD_USER'] = 'app_user'
+        os.environ['GRIDAPPSD_PASSWORD'] = '1234App'
+        gapps = GridAPPSD()
+        assert gapps.connected
+        self.gapps = gapps
+        self.log = self.gapps.get_logger()
+        
+        self.log.info('Topology daemon started')
+
+    def execute(self, query: str):
+        
+        response = self.gapps.query_data(self, query, database_type="powergridmodel", timeout=30)
+        return response['data']['results']['bindings']
+     
+    def get_response(self, topic:str, message:str):
+        response = self.gapps.get_response(topic, message)
+        return response
+
