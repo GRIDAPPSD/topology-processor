@@ -18,7 +18,7 @@ class DistributedTopology():
         network.build_equip_dicts(model_mrid, self.MVTopology)
 
         self.log.info('Building linked lists of all equipment for ' + str(model_mrid))
-        EqTypes = ['ACLineSegment', 'PowerTransformer', 'TransformerTank', 'SynchronousMachine']
+        EqTypes = ['ACLineSegment', 'PowerTransformer', 'TransformerTank', 'SynchronousMachine', 'Fuse']
         self.Topology.build_linknet(EqTypes)
         self.log.info('Building linked lists of medium-voltage equipment for ' + str(model_mrid))
         EqTypes = ['ACLineSegment', 'RatioTapChanger', 'SynchronousMachine']
@@ -27,8 +27,8 @@ class DistributedTopology():
         MVTree = {}
         BreakerKeys = list(self.Topology.EquipDict['Breaker'].keys())
         MVTree = self.MVTopology.spanning_tree('Breaker', BreakerKeys , MVTree, 'all')
-        FuseKeys = list(self.Topology.EquipDict['Fuse'].keys())
-        MVTree = self.MVTopology.spanning_tree('Fuse', FuseKeys , MVTree, 'all')
+#         FuseKeys = list(self.Topology.EquipDict['Fuse'].keys())
+#         MVTree = self.MVTopology.spanning_tree('Fuse', FuseKeys , MVTree, 'all')
         SwitchKeys = list(self.Topology.EquipDict['LoadBreakSwitch'].keys())
         MVTree = self.MVTopology.spanning_tree('LoadBreakSwitch', SwitchKeys, MVTree,'all')
         RecloserKeys = list(self.Topology.EquipDict['Recloser'].keys())
@@ -48,6 +48,8 @@ class DistributedTopology():
         self.DistAppStruct['feeders']['unaddressable_equipment'] = []
         self.DistAppStruct['feeders']['connectivity_node'] = []
         self.DistAppStruct['feeders']['switch_areas'] = []
+        self.DistAppStruct['feeders']['measurements'] = []
+        
         ProcessedNodes = [] # List to keep track of which nodes have been processed
         SwitchKeys = list(MVTree.keys()) # Get list of all switching devices from all CIM classes
         # Iterate through all switches
@@ -59,12 +61,14 @@ class DistributedTopology():
             SwitchArea['unaddressable_equipment'] = []
             SwitchArea['connectivity_node'] = []
             SwitchArea['secondary_areas'] = []
+            SwitchArea['measurements'] = []
             # Initialize secondary area dictionary
             DistArea = {}
             DistArea['distribution_transformer'] = []
             DistArea['addressable_equipment'] = []
             DistArea['unaddressable_equipment'] = []
             DistArea['connectivity_node'] = []
+            DistArea['measurements'] = []
             DistAreaFlag1 = True
             for i2 in range(len(MVTree[SwitchKeys[i1]])):
                 # Select next medium-voltage node, append to processed list
@@ -72,7 +76,7 @@ class DistributedTopology():
                 ProcessedNodes.append(node)
                 # Add all connected equipment
                 SwitchArea['boundary_switches'].extend(ConnNodeDict[node]['Breaker'])
-                SwitchArea['boundary_switches'].extend(ConnNodeDict[node]['Fuse'])
+#                 SwitchArea['boundary_switches'].extend(ConnNodeDict[node]['Fuse'])
                 SwitchArea['boundary_switches'].extend(ConnNodeDict[node]['LoadBreakSwitch'])
                 SwitchArea['boundary_switches'].extend(ConnNodeDict[node]['Recloser'])
                 SwitchArea['addressable_equipment'].extend(ConnNodeDict[node]['SynchronousMachine'])
@@ -87,6 +91,7 @@ class DistributedTopology():
                 SwitchArea['unaddressable_equipment'].extend(ConnNodeDict[node]['PowerTransformer'])
                 SwitchArea['unaddressable_equipment'].extend(ConnNodeDict[node]['TransformerTank'])
                 SwitchArea['unaddressable_equipment'].extend(ConnNodeDict[node]['Measurement'])
+                SwitchArea['measurements'].extend(ConnNodeDict[node]['Measurement'])
                 SwitchArea['connectivity_node'].append(node)
                 # Identify PowerTransformer and TransformerTanks for secondary areas
                 DistXfmrTanks = ConnNodeDict[node]['TransformerTank'] 
@@ -125,6 +130,7 @@ class DistributedTopology():
             self.DistAppStruct['feeders']['unaddressable_equipment'].extend(ConnNodeDict[node]['PowerTransformer'])
             self.DistAppStruct['feeders']['unaddressable_equipment'].extend(ConnNodeDict[node]['TransformerTank'])
             self.DistAppStruct['feeders']['unaddressable_equipment'].extend(ConnNodeDict[node]['Measurement'])
+            self.DistAppStruct['feeders']['measurements'].extend(ConnNodeDict[node]['Measurement'])
             self.DistAppStruct['feeders']['connectivity_node'].append(node)
 
         return self.DistAppStruct
@@ -137,6 +143,7 @@ class DistributedTopology():
         DistArea['addressable_equipment'] = []
         DistArea['unaddressable_equipment'] = []
         DistArea['connectivity_node'] = []
+        DistArea['measurements'] = []
         LVNodes = []
         DistAreaFlag2 = False
         # Iterate through all secondary transformers
@@ -162,6 +169,7 @@ class DistributedTopology():
                     DistArea['connectivity_node'].append(lvnode)
                     SwitchArea['unaddressable_equipment'].extend(ConnNodeDict[lvnode]['ACLineSegment'])
                     SwitchArea['unaddressable_equipment'].extend(ConnNodeDict[lvnode]['Measurement'])
+                    SwitchArea['measurements'].extend(ConnNodeDict[lvnode]['Measurement'])
         if DistAreaFlag2: # append secondary area if not empty
             SwitchArea['secondary_areas'].append((DistArea.copy()))
         return SwitchArea, LVNodes

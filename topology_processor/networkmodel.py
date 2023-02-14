@@ -1,13 +1,15 @@
-from gridappsd import GridAPPSD
+# from gridappsd import GridAPPSD
 import time, json
 import topology_processor.topo_meas_queries as queries
-
-class NetworkModel(GridAPPSD):
+from topology_processor.blazegraph import BlazegraphConnection
+import sys
+class NetworkModel():
 
     def __init__(self, gapps):
         self.gapps = gapps
         self.log = self.gapps.get_logger()
-    
+        self.blazegraph = BlazegraphConnection()
+        self.log.info(sys.argv[0])
     # This method builds equipment dictionaries for given model and Topology object
     def build_equip_dicts(self, model_mrid, Topology):
         # Initialize all equipment dictionary keys
@@ -31,7 +33,7 @@ class NetworkModel(GridAPPSD):
         # Initialize dictionary keys for all ConnectivityNode objects in model:
         StartTime = time.process_time()
         i0=-1
-        NodeQuery=queries.get_all_nodes(self.gapps,model_mrid)
+        NodeQuery=queries.get_all_nodes(self.blazegraph,model_mrid)
         for i0 in range(len(NodeQuery)):
             node=NodeQuery[i0]['cnid']['value']
             Topology.ConnNodeDict[node] = {}
@@ -63,7 +65,7 @@ class NetworkModel(GridAPPSD):
 
         # Import all measurements and associated objects:
         StartTime = time.process_time()
-        MeasurementQuery=queries.get_all_measurements(self.gapps,model_mrid)
+        MeasurementQuery=queries.get_all_measurements(self.blazegraph,model_mrid)
         i1 = -1
         # Parse all entries in query response
         for i1 in range(len(MeasurementQuery)):    
@@ -104,7 +106,7 @@ class NetworkModel(GridAPPSD):
 
         # Import all ACLineSegment objects - SECOND PASS
         StartTime = time.process_time()
-        LineQuery = queries.get_all_lines(self.gapps, model_mrid)
+        LineQuery = queries.get_all_lines(self.blazegraph, model_mrid)
         i2 = -1
         eqtype = 'ACLineSegment'
         for i2 in range(len(LineQuery)):
@@ -123,7 +125,7 @@ class NetworkModel(GridAPPSD):
 
         # Import all PowerTransformer and TransformerTank objects - SECOND PASS
         StartTime = time.process_time()
-        XfmrQuery = queries.get_all_transformers(self.gapps, model_mrid)
+        XfmrQuery = queries.get_all_transformers(self.blazegraph, model_mrid)
         i2 = -1
         for i2 in range(len(XfmrQuery)):
             eqtype = XfmrQuery[i2]['class']['value']
@@ -148,7 +150,7 @@ class NetworkModel(GridAPPSD):
 
         # Import all Breaker, Fuse, LoadBreakSwitch, and Recloser objects -  SECOND PASS
         StartTime = time.process_time()
-        SwitchQuery = queries.get_all_switches(self.gapps, model_mrid)
+        SwitchQuery = queries.get_all_switches(self.blazegraph, model_mrid)
         i3 = -1
         for i3 in range(len(SwitchQuery)):
             eqid = SwitchQuery[i3]['id']['value']
@@ -173,7 +175,7 @@ class NetworkModel(GridAPPSD):
 
         # Import all House objects
         StartTime = time.process_time()
-        HouseQuery = queries.get_all_houses(self.gapps, model_mrid)
+        HouseQuery = queries.get_all_houses(self.blazegraph, model_mrid)
         i4 = -1
         for i4 in range(len(HouseQuery)):
             eqid = HouseQuery[i3]['id']['value']
@@ -187,7 +189,7 @@ class NetworkModel(GridAPPSD):
 
         # Import all RatioTapChanger objects
         StartTime = time.process_time()
-        TapChangerQuery = queries.get_all_tapchangers(self.gapps, model_mrid)
+        TapChangerQuery = queries.get_all_tapchangers(self.blazegraph, model_mrid)
         eqtype = 'RatioTapChanger'
         i5 = -1
         for i5 in range(len(TapChangerQuery)):
@@ -206,12 +208,12 @@ class NetworkModel(GridAPPSD):
                     Topology.EquipDict[eqtype][eqid]['PowerTransformer'] = pxfid
                     
             Topology.EquipDict[eqtype][eqid]['name'] = TapChangerQuery[i5]['rname']['value']
- 
+            
         self.log.info('Processed ' + str(i5+1) + ' RatioTapChanger objects in ' + str(round(1000*(time.process_time() - StartTime))) + " ms")
         
         # Import all EnergySource objects
         startTime = time.process_time()
-        SourceQuery = queries.get_all_energy_sources(self.gapps, model_mrid)
+        SourceQuery = queries.get_all_energy_sources(self.blazegraph, model_mrid)
         eqtype = 'EnergySource'
         for i6 in range(len(SourceQuery)):
             eqid = SourceQuery[i6]['source']['value']
@@ -223,7 +225,7 @@ class NetworkModel(GridAPPSD):
             
         # Import all BatteryUnit objects
         startTime = time.process_time()
-        BattQuery = queries.get_all_batteries(self.gapps, model_mrid)
+        BattQuery = queries.get_all_batteries(self.blazegraph, model_mrid)
         eqtype = 'BatteryUnit'
         for i7 in range(len(BattQuery)):
             eqid = BattQuery[i7]['eqid']['value']
@@ -239,7 +241,7 @@ class NetworkModel(GridAPPSD):
             
         # Import all PhotovoltaicUnit objects
         startTime = time.process_time()
-        PVQuery = queries.get_all_photovoltaics(self.gapps, model_mrid)
+        PVQuery = queries.get_all_photovoltaics(self.blazegraph, model_mrid)
         eqtype = 'PhotovoltaicUnit'
         for i7 in range(len(PVQuery)):
             eqid = PVQuery[i7]['eqid']['value']
