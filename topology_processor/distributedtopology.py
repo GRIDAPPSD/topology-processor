@@ -105,6 +105,7 @@ class DistributedTopology():
 
             if SwitchArea['boundary_switches']: # Append switch area if not duplicate
                 self.DistAppStruct['feeders']['switch_areas'].append(dict(SwitchArea))
+                self.DistAppStruct['feeders']['connectivity_node'].extend(SwitchArea['connectivity_node'])
                 self.DistAppStruct['feeders']['addressable_equipment'].extend(SwitchArea['boundary_switches'])
                 self.DistAppStruct['feeders']['unaddressable_equipment'].extend(SwitchArea['unaddressable_equipment'])
 
@@ -160,6 +161,7 @@ class DistributedTopology():
                     DistArea['unaddressable_equipment'].extend(ConnNodeDict[lvnode]['ACLineSegment'])
                     DistArea['unaddressable_equipment'].extend(ConnNodeDict[lvnode]['Measurement'])
                     DistArea['connectivity_node'].append(lvnode)
+                    SwitchArea['connectivity_node'].append(lvnode)
                     SwitchArea['unaddressable_equipment'].extend(ConnNodeDict[lvnode]['ACLineSegment'])
                     SwitchArea['unaddressable_equipment'].extend(ConnNodeDict[lvnode]['Measurement'])
         if DistAreaFlag2: # append secondary area if not empty
