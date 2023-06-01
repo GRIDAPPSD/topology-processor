@@ -1,19 +1,35 @@
 [tool.poetry]
 name = "gridappsd-topology-processor"
-version = "0.2.0"
+version = "0.2.1"
 description = ""
-authors = ["C. Allwardt <3979063+craig8@users.noreply.github.com>"]
+authors = [
+    "A. Anderson <19935503+AAndersn@users.noreply.github.com>",
+    "C. Allwardt <3979063+craig8@users.noreply.github.com>",
+    "A. Fisher <4552674+afisher1@users.noreply.github.com>"
+]
+maintainers = [
+    "A. Anderson <19935503+AAndersn@users.noreply.github.com>",
+    "C. Allwardt <3979063+craig8@users.noreply.github.com>",
+    "A. Fisher <4552674+afisher1@users.noreply.github.com>"
+]
 packages = [
     { include = "topology_processor"}
 ]
+license = "BSD-3-Clause"
+readme = "README.md"
+homepage = "https://github.com/GRIDAPPSD/topology-processor"
+repository = "https://github.com/GRIDAPPSD/topology-processor"
+documentation = "https://github.com/GRIDAPPSD/topology-processor"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-gridappsd-python = "^2.2.20211100"
-mock = "^4.0.3"
+gridappsd-python = {version = "^2023.5.1a9", allow-prereleases = true}
 
-[tool.poetry.dev-dependencies]
-pytest = "^6.2.5"
+[tool.poetry.group.dev.dependencies]
+mock = "^5.0.2"
+pytest = "^7.3.1"
+yapf = "^0.33.0"
+pre-commit = "^3.3.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
