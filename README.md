@@ -41,7 +41,7 @@ To subscribe to the service create a class or function definition that is then p
 
 A working example is available in the `topo_service_tester.py` script, which subscribes to the topology service of a running simulation and then prints feeder and island info to the terminal window as switching actions are made.
 
-```
+```python
 output_topic = "/topic/goss.gridappsd.simulation.topologyprocessor."+str(viz_simulation_id)+".output"
 
 def DemoTPsubscriber(headers, message):
@@ -64,9 +64,9 @@ There are three API calls that can be made.
 
 ### GET_BASE_TOPOLOGY
 
-This API call generates the full topology dictionary for the feeder using the normally-open / normally-closed switch positions in the CIM XML feeder model. 
+This API call generates the full topology dictionary for the feeder using the normally-open / normally-closed switch positions in the CIM XML feeder model.
 
-```
+```python
 topic = "goss.gridappsd.request.data.topology"
 
 message = {
@@ -80,7 +80,7 @@ message = gapps.get_response(topic, message, timeout=30)
 
 It returns a Python dictionary / JSON string message in the following format:
 
-```
+```python
 {
     "feeder_id": "_49AD8E07-3BF9-A4E2-CB8F-C3722F837B62",
     "feeders": {
@@ -309,9 +309,7 @@ It returns a Python dictionary / JSON string message in the following format:
 
 ### GET_SNAPSHOT_TOPOLOGY
 
-
-
-```
+```python
 topic = "goss.gridappsd.request.data.topology"
 
 message = {
@@ -330,7 +328,7 @@ message = gapps.get_response(topic, message, timeout=90)
 
 This call returns the dictionary of feeder equipment used by the GridAPPS-D Distributed API.
 
-```
+```python
 topic = "goss.gridappsd.request.data.topology"
 
 message = {
