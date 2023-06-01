@@ -4,11 +4,13 @@ version = "0.2.1"
 description = ""
 authors = [
     "A. Anderson <19935503+AAndersn@users.noreply.github.com>",
-    "C. Allwardt <3979063+craig8@users.noreply.github.com>"
+    "C. Allwardt <3979063+craig8@users.noreply.github.com>",
+    "A. Fisher <4552674+afisher1@users.noreply.github.com>"
 ]
 maintainers = [
     "A. Anderson <19935503+AAndersn@users.noreply.github.com>",
-    "C. Allwardt <3979063+craig8@users.noreply.github.com>"
+    "C. Allwardt <3979063+craig8@users.noreply.github.com>",
+    "A. Fisher <4552674+afisher1@users.noreply.github.com>"
 ]
 packages = [
     { include = "topology_processor"}
