@@ -34,8 +34,10 @@ def get_all_measurements(gapps, model_mrid):
         } ORDER BY ?cnid ?type
         """%model_mrid
 
-    results = gapps.query_data(query = QueryMeasurementMessage, timeout = 60)
-    MeasurementQuery = results['data']['results']['bindings']
+#     results = gapps.query_data(query = QueryMeasurementMessage, timeout = 60)
+#     MeasurementQuery = results['data']['results']['bindings']
+    results = gapps.execute(QueryMeasurementMessage)
+    MeasurementQuery = results['results']['bindings']
     return MeasurementQuery
 
 
@@ -69,8 +71,10 @@ def get_all_nodes(gapps, model_mrid):
         ORDER by ?busname
         """%model_mrid
 
-    results = gapps.query_data(query = QueryNodeMessage, timeout = 60)
-    NodeQuery = results['data']['results']['bindings']
+#     results = gapps.query_data(query = QueryNodeMessage, timeout = 60)
+#     NodeQuery = results['data']['results']['bindings']
+    results = gapps.execute(QueryNodeMessage)
+    NodeQuery = results['results']['bindings']
     return NodeQuery
 
 # Get all switches with nodes, terminals, and default positions
@@ -114,8 +118,10 @@ def get_all_switches(gapps, model_mrid):
         GROUP BY ?cimtype ?name ?id ?bus1 ?bus2 ?term1 ?term2 ?node1 ?node2 ?tpnode1 ?tpnode2 ?open
         ORDER BY ?cimtype ?name
         """%model_mrid
-    results = gapps.query_data(query = QuerySwitchMessage, timeout = 60)
-    SwitchQuery = results['data']['results']['bindings']
+#     results = gapps.query_data(query = QuerySwitchMessage, timeout = 60)
+#     SwitchQuery = results['data']['results']['bindings']
+    results = gapps.execute(QuerySwitchMessage)
+    SwitchQuery = results['results']['bindings']
     return SwitchQuery
 
 def get_all_transformers(gapps,model_mrid):
@@ -155,8 +161,10 @@ def get_all_transformers(gapps,model_mrid):
         }
         ORDER by ?class ?eqid ?tname ?endid ?bus ?cnid ?tpid ?seq ?phs ?ratedu
         """%model_mrid
-    results = gapps.query_data(query = QueryXfmrMessage, timeout = 60)
-    XfmrQuery = results['data']['results']['bindings']
+#     results = gapps.query_data(query = QueryXfmrMessage, timeout = 60)
+#     XfmrQuery = results['data']['results']['bindings']
+    results = gapps.execute(QueryXfmrMessage)
+    XfmrQuery = results['results']['bindings']
     return XfmrQuery
 
 def get_all_lines(gapps, model_mrid):
@@ -199,8 +207,10 @@ def get_all_lines(gapps, model_mrid):
         GROUP BY ?name ?bus1 ?bus2 ?id ?tname1 ?term1 ?tname2 ?term2 ?node1 ?node2 ?tpnode1 ?tpnode2
         ORDER BY ?name
         """%model_mrid
-    results = gapps.query_data(query = QueryLineMessage, timeout = 60)
-    LineQuery = results['data']['results']['bindings']
+#     results = gapps.query_data(query = QueryLineMessage, timeout = 60)
+#     LineQuery = results['data']['results']['bindings']
+    results = gapps.execute(QueryLineMessage)
+    LineQuery = results['results']['bindings']
     return LineQuery
 
 def get_all_houses(gapps, model_mrid):
@@ -225,8 +235,10 @@ def get_all_houses(gapps, model_mrid):
        bind(strafter(str(?cn),"#") as ?cnid).
     } ORDER BY ?name
     """%model_mrid
-    results = gapps.query_data(query = QueryHouseMessage, timeout = 60)
-    HouseQuery = results['data']['results']['bindings']
+#     results = gapps.query_data(query = QueryHouseMessage, timeout = 60)
+#     HouseQuery = results['data']['results']['bindings']
+    results = gapps.execute(QueryHouseMessage)
+    HouseQuery = results['results']['bindings']
     return HouseQuery
 
 def get_all_tapchangers(gapps, model_mrid):
@@ -259,8 +271,10 @@ def get_all_tapchangers(gapps, model_mrid):
     }
     ORDER BY ?rname ?wnum
     """%model_mrid
-    results = gapps.query_data(query = QueryTapMessage, timeout = 60)
-    TapChangerQuery = results['data']['results']['bindings']
+#     results = gapps.query_data(query = QueryTapMessage, timeout = 60)
+#     TapChangerQuery = results['data']['results']['bindings']
+    results = gapps.execute(QueryTapMessage)
+    TapChangerQuery = results['results']['bindings']
     return TapChangerQuery
 
 def get_all_energy_sources(gapps, model_mrid):
@@ -287,8 +301,10 @@ def get_all_energy_sources(gapps, model_mrid):
     }
     ORDER by ?name
     """%model_mrid
-    results = gapps.query_data(query = QuerySourceMessage, timeout = 60)
-    SourceQuery = results['data']['results']['bindings']
+#     results = gapps.query_data(query = QuerySourceMessage, timeout = 60)
+#     SourceQuery = results['data']['results']['bindings']
+    results = gapps.execute(QuerySourceMessage)
+    SourceQuery = results['results']['bindings']
     return SourceQuery
 
 def get_all_batteries(gapps, model_mrid):
@@ -315,8 +331,10 @@ def get_all_batteries(gapps, model_mrid):
     GROUP by ?name ?eqid ?fdrid ?pecid ?termid ?cnid
     ORDER by ?name
     """%model_mrid
-    results = gapps.query_data(query = QueryBattMessage, timeout = 60)
-    BattQuery = results['data']['results']['bindings']
+#     results = gapps.query_data(query = QueryBattMessage, timeout = 60)
+#     BattQuery = results['data']['results']['bindings']
+    results = gapps.execute(QueryBattMessage)
+    BattQuery = results['results']['bindings']
     return BattQuery
 
 def get_all_photovoltaics(gapps, model_mrid):
@@ -342,6 +360,8 @@ def get_all_photovoltaics(gapps, model_mrid):
     GROUP by ?name ?eqid ?pecid ?cnid ?termid
     ORDER by ?name
     """%model_mrid
-    results = gapps.query_data(query = QueryPVMessage, timeout = 60)
-    PVQuery = results['data']['results']['bindings']
+#     results = gapps.query_data(query = QueryPVMessage, timeout = 60)
+#     PVQuery = results['data']['results']['bindings']
+    results = gapps.execute(QueryPVMessage)
+    PVQuery = results['results']['bindings']
     return PVQuery

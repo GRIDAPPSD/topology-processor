@@ -8,22 +8,22 @@ class DistributedTopology():
         self.gapps = gapps
         self.Topology = TopologyDictionary(gapps, model_mrid)
         self.MVTopology = TopologyDictionary(gapps, model_mrid)
-        self.log = self.gapps.get_logger()
+#         self.log = self.gapps.get_logger()
         
     def create_switch_areas(self, model_mrid):
         
         network = NetworkModel(self.gapps)
-        self.log.info('Querying for power system model for' + str(model_mrid))
+#         self.log.info('Querying for power system model for' + str(model_mrid))
         network.build_equip_dicts(model_mrid, self.Topology)
         network.build_equip_dicts(model_mrid, self.MVTopology)
 
-        self.log.info('Building linked lists of all equipment for ' + str(model_mrid))
+#         self.log.info('Building linked lists of all equipment for ' + str(model_mrid))
         EqTypes = ['ACLineSegment', 'PowerTransformer', 'TransformerTank', 'SynchronousMachine']
         self.Topology.build_linknet(EqTypes)
-        self.log.info('Building linked lists of medium-voltage equipment for ' + str(model_mrid))
+#         self.log.info('Building linked lists of medium-voltage equipment for ' + str(model_mrid))
         EqTypes = ['ACLineSegment', 'RatioTapChanger', 'SynchronousMachine']
         self.MVTopology.build_linknet(EqTypes)
-        self.log.info('Processing switch-delimited areas for ' + str(model_mrid))
+#         self.log.info('Processing switch-delimited areas for ' + str(model_mrid))
         MVTree = {}
         BreakerKeys = list(self.Topology.EquipDict['Breaker'].keys())
         MVTree = self.MVTopology.spanning_tree('Breaker', BreakerKeys , MVTree, 'all')
