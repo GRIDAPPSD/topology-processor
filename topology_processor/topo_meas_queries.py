@@ -2,7 +2,7 @@
 
     
     # Get all measurements points for all equipment from Blazegraph Database
-def get_all_measurements(gapps, model_mrid):
+def get_all_measurements(blazegraph, model_mrid):
     QueryMeasurementMessage="""
         # list all measurements, with buses and equipments - DistMeasurement
         PREFIX r: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -34,14 +34,15 @@ def get_all_measurements(gapps, model_mrid):
         } ORDER BY ?cnid ?type
         """%model_mrid
 
-    results = gapps.query_data(query = QueryMeasurementMessage, timeout = 60)
-    MeasurementQuery = results['data']['results']['bindings']
-    return MeasurementQuery
+    results = blazegraph.execute(QueryMeasurementMessage)
+#     results = gapps.query_data(query = QueryMeasurementMessage, timeout = 60)
+#     MeasurementQuery = results['data']['results']['bindings']
+    return results
 
 
 
 # Get all ConnectivityNode and TopologicalNode objects
-def get_all_nodes(gapps, model_mrid):
+def get_all_nodes(blazegraph, model_mrid):
     QueryNodeMessage="""
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX c:  <http://iec.ch/TC57/CIM100#>
@@ -69,12 +70,13 @@ def get_all_nodes(gapps, model_mrid):
         ORDER by ?busname
         """%model_mrid
 
-    results = gapps.query_data(query = QueryNodeMessage, timeout = 60)
-    NodeQuery = results['data']['results']['bindings']
-    return NodeQuery
+#     results = gapps.query_data(query = QueryNodeMessage, timeout = 60)
+    results = blazegraph.execute(QueryNodeMessage)
+#     NodeQuery = results['data']['results']['bindings']
+    return results
 
 # Get all switches with nodes, terminals, and default positions
-def get_all_switches(gapps, model_mrid):
+def get_all_switches(blazegraph, model_mrid):
     QuerySwitchMessage="""
         # list nodes for Breakers, Reclosers, LoadBreakSwitches, Fuses, Sectionalisers in a selected feeder
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -114,11 +116,12 @@ def get_all_switches(gapps, model_mrid):
         GROUP BY ?cimtype ?name ?id ?bus1 ?bus2 ?term1 ?term2 ?node1 ?node2 ?tpnode1 ?tpnode2 ?open
         ORDER BY ?cimtype ?name
         """%model_mrid
-    results = gapps.query_data(query = QuerySwitchMessage, timeout = 60)
-    SwitchQuery = results['data']['results']['bindings']
-    return SwitchQuery
+#     results = gapps.query_data(query = QuerySwitchMessage, timeout = 60)
+    results = blazegraph.execute(QuerySwitchMessage)
+#     SwitchQuery = results['data']['results']['bindings']
+    return results
 
-def get_all_transformers(gapps,model_mrid):
+def get_all_transformers(blazegraph,model_mrid):
     QueryXfmrMessage="""
         # list all the terminals connected to a TransformerEnd for CIMWriter
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -155,11 +158,12 @@ def get_all_transformers(gapps,model_mrid):
         }
         ORDER by ?class ?eqid ?tname ?endid ?bus ?cnid ?tpid ?seq ?phs ?ratedu
         """%model_mrid
-    results = gapps.query_data(query = QueryXfmrMessage, timeout = 60)
-    XfmrQuery = results['data']['results']['bindings']
-    return XfmrQuery
+#     results = gapps.query_data(query = QueryXfmrMessage, timeout = 60)
+    results = blazegraph.execute(QueryXfmrMessage)
+#     XfmrQuery = results['data']['results']['bindings']
+    return results
 
-def get_all_lines(gapps, model_mrid):
+def get_all_lines(blazegraph, model_mrid):
     QueryLineMessage="""
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX c:  <http://iec.ch/TC57/CIM100#>
@@ -199,11 +203,12 @@ def get_all_lines(gapps, model_mrid):
         GROUP BY ?name ?bus1 ?bus2 ?id ?tname1 ?term1 ?tname2 ?term2 ?node1 ?node2 ?tpnode1 ?tpnode2
         ORDER BY ?name
         """%model_mrid
-    results = gapps.query_data(query = QueryLineMessage, timeout = 60)
-    LineQuery = results['data']['results']['bindings']
-    return LineQuery
+#     results = gapps.query_data(query = QueryLineMessage, timeout = 60)
+    results = blazegraph.execute(QueryLineMessage)
+#     LineQuery = results['data']['results']['bindings']
+    return results
 
-def get_all_houses(gapps, model_mrid):
+def get_all_houses(blazegraph, model_mrid):
     QueryHouseMessage = """
     # list houses - DistHouse
     PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -225,11 +230,12 @@ def get_all_houses(gapps, model_mrid):
        bind(strafter(str(?cn),"#") as ?cnid).
     } ORDER BY ?name
     """%model_mrid
-    results = gapps.query_data(query = QueryHouseMessage, timeout = 60)
-    HouseQuery = results['data']['results']['bindings']
-    return HouseQuery
+#     results = gapps.query_data(query = QueryHouseMessage, timeout = 60)
+    results = blazegraph.execute(QueryHouseMessage)
+#     HouseQuery = results['data']['results']['bindings']
+    return results
 
-def get_all_tapchangers(gapps, model_mrid):
+def get_all_tapchangers(blazegraph, model_mrid):
     QueryTapMessage = """
     # voltage regulators - DistRegulator
     PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -259,11 +265,12 @@ def get_all_tapchangers(gapps, model_mrid):
     }
     ORDER BY ?rname ?wnum
     """%model_mrid
-    results = gapps.query_data(query = QueryTapMessage, timeout = 60)
-    TapChangerQuery = results['data']['results']['bindings']
-    return TapChangerQuery
+#     results = gapps.query_data(query = QueryTapMessage, timeout = 60)
+    results = blazegraph.execute(QueryTapMessage)
+#     TapChangerQuery = results['data']['results']['bindings']
+    return results
 
-def get_all_energy_sources(gapps, model_mrid):
+def get_all_energy_sources(blazegraph, model_mrid):
     QuerySourceMessage = """
     # substation source - DistSubstation
     PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -287,11 +294,12 @@ def get_all_energy_sources(gapps, model_mrid):
     }
     ORDER by ?name
     """%model_mrid
-    results = gapps.query_data(query = QuerySourceMessage, timeout = 60)
-    SourceQuery = results['data']['results']['bindings']
-    return SourceQuery
+#     results = gapps.query_data(query = QuerySourceMessage, timeout = 60)
+    results = blazegraph.execute(QuerySourceMessage)
+#     SourceQuery = results['data']['results']['bindings']
+    return results
 
-def get_all_batteries(gapps, model_mrid):
+def get_all_batteries(blazegraph, model_mrid):
     QueryBattMessage = """
     # Storage - DistStorage
     PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -315,11 +323,12 @@ def get_all_batteries(gapps, model_mrid):
     GROUP by ?name ?eqid ?fdrid ?pecid ?termid ?cnid
     ORDER by ?name
     """%model_mrid
-    results = gapps.query_data(query = QueryBattMessage, timeout = 60)
-    BattQuery = results['data']['results']['bindings']
-    return BattQuery
+#     results = gapps.query_data(query = QueryBattMessage, timeout = 60)
+    results = blazegraph.execute(QueryBattMessage)
+#     BattQuery = results['data']['results']['bindings']
+    return results
 
-def get_all_photovoltaics(gapps, model_mrid):
+def get_all_photovoltaics(blazegraph, model_mrid):
     QueryPVMessage = """
     PREFIX r: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
     PREFIX c: <http://iec.ch/TC57/CIM100#>
@@ -342,6 +351,7 @@ def get_all_photovoltaics(gapps, model_mrid):
     GROUP by ?name ?eqid ?pecid ?cnid ?termid
     ORDER by ?name
     """%model_mrid
-    results = gapps.query_data(query = QueryPVMessage, timeout = 60)
-    PVQuery = results['data']['results']['bindings']
-    return PVQuery
+    results = blazegraph.execute(QueryPVMessage)
+#     results = gapps.query_data(query = QueryPVMessage, timeout = 60)
+#     PVQuery = results['data']['results']['bindings']
+    return results
