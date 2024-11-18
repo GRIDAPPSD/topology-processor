@@ -22,8 +22,11 @@ repository = "https://github.com/GRIDAPPSD/topology-processor"
 documentation = "https://github.com/GRIDAPPSD/topology-processor"
 
 [tool.poetry.dependencies]
-python = "^3.8"
-gridappsd-python = {version = "^2023.5.1a9", allow-prereleases = true}
+python = "^3.10"
+gridappsd-python = {version = "^2024.6.0", allow-prereleases = true}
+cim-topology = { git = "https://github.com/PNNL-CIM-Tools/CIM-Graph-Topology-Processor", branch = "cimgraph-refactor"}
+cim-graph = { git = "https://github.com/PNNL-CIM-Tools/CIM-Graph.git", branch = "feature/68"}
+
 
 [tool.poetry.group.dev.dependencies]
 mock = "^5.0.2"
