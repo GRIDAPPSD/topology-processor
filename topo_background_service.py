@@ -6,7 +6,7 @@ from gridappsd import GridAPPSD
 from gridappsd.topics import service_input_topic, service_output_topic
 from cimgraph.databases import ConnectionParameters, BlazegraphConnection
 
-from cimtopology.utils import DistributedTopologyMessage
+from topology_processor.utils import DistributedTopologyMessage
 import cimgraph.data_profile.cimhub_2023 as cim
 
 class TopologyProcessor(GridAPPSD):
