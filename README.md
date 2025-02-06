@@ -1,6 +1,173 @@
-# GridAPPS-D Toolbox Topology Processor
+# GridAPPS-D Topology Processor
 
-The Topology Processor is a lightweight service based on the LinkNet(TM) open-source data structure for mapping CIM ConnectivityNodes and Terminals developed by IncSys Corp. LinkNet(TM) is a trademark of Incremental Systems Corporation and is used with permission.
+![GitHub Tag](https://img.shields.io/github/v/tag/GRIDAPPSD/topology-processor)
+![GitHub Release Date](https://img.shields.io/github/release-date-pre/GRIDAPPSD/topology-processor)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/GRIDAPPSD/topology-processor/deploy-dev-release.yml)
+![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/GRIDAPPSD/topology-processor)
+
+
+
+![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/GRIDAPPSD/topology-processor)
+![GitHub Issues or Pull Requests](https://img.shields.io/github/issues-pr/GRIDAPPSD/topology-processor)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/t/GRIDAPPSD/topology-processor)
+
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/GRIDAPPSD/topology-processor/total?label=git%20downloads)
+![GitHub License](https://img.shields.io/github/license/GRIDAPPSD/topology-processor)
+![https://doi.org/10.1109/access.2022.3221132](https://img.shields.io/badge/doi-10.1109/access.2022.3221132-blue)
+
+This repo contains the GridAPPS-D services for transmission and distribution topology. The core algorithms are currently being migrated to https://github.com/PNNL-CIM-Tools/CIM-Graph-Topology-Processor and rebuilt using CIMantic Graphs labeled property graphs instead of the linked list data structures used in this repo.
+
+The original topology processor services have been moved into the `archive` directory and based on the LinkNet(TM) open-source data structure for mapping CIM ConnectivityNodes and Terminals developed by IncSys Corp. LinkNet(TM) is a trademark of Incremental Systems Corporation and is used with permission.
+
+## Switch-Delimited Topology Areas for Distributed Apps and Context Manager
+
+### Service Call
+
+The topology service uses a new topic and keyword. `mRID` can be that of a `cim:Feeder`, `cim:FeederArea`, or `cim:DistributionArea`.
+
+```python
+topic = "goss.gridappsd.request.data.cimtopology"
+
+message = {
+   "requestType": "GET_DISTRIBUTED_AREAS",
+   "mRID":  "FEEDER-1234-ABCD-MRID",
+   "resultFormat": "JSON"
+}
+
+message = gapps.get_response(topic, message, timeout=30)
+```
+
+### Service Response
+
+The new topology processor response will be formatted as JSON-LD, with `mRID` replaced with `@id` and `@type`:
+
+```json
+{
+    "DistributionArea": {
+        "@id": "uuid-string",
+        "@type": "DistributionArea",
+        "Substations": [
+            {
+                "@id": "uuid-string",
+                "@type": "Substation",
+                "NormalEnergizedFeeder": [
+                    {
+                        "@id": "uuid-string",
+                        "@type": "Feeder",
+                        "FeederArea": {
+                            "@id": "uuid-string",
+                            "@type": "FeederArea",
+                            "BoundaryTerminals": [
+                                {
+                                    "@id": "uuid-string",
+                                    "@type": "Terminal"
+                                }
+                            ],
+                            "AddressableEquipment": [
+                                {
+                                    "@id": "uuid-string",
+                                    "@type": "Breaker"
+                                },
+                            ],
+                            "UnaddressableEquipment": [
+                                {
+                                    "@id": "uuid-string",
+                                    "@type": "PowerTransformer"
+                                },
+                                {
+                                    "@id": "uuid-string",
+                                    "@type": "EnergySource"
+                                }
+                            ],
+                            "Measurements": [
+                                {
+                                    "@id": "uuid-string",
+                                    "@type": "Analog"
+                                },
+                                {
+                                    "@id": "uuid-string",
+                                    "@type": "Discrete"
+                                }
+                            ],
+                            "SwitchAreas": [
+                                {
+                                    "@id": "uuid-string",
+                                    "@type": "SwitchArea",
+                                    "FeederArea": {
+                                        "@id": "uuid-string",
+                                        "@type": "FeederArea"
+                                    },
+                                    "BoundaryTerminals": [
+                                        {
+                                            "@id": "uuid-string",
+                                            "@type": "Terminal"
+                                        }
+                                    ],
+                                    "AddressableEquipment": [
+                                        {
+                                            "@id": "uuid-string",
+                                            "@type": "LinearShuntCompensator"
+                                        }
+                                    ],
+                                    "UnaddressableEquipment": [
+                                        {
+                                            "@id": "uuid-string",
+                                            "@type": "ACLineSegment"
+                                        }
+                                        "Measurements": [
+                                        {
+                                            "@id": "uuid-string",
+                                            "@type": "Analog"
+                                        },
+                                        {
+                                            "@id": "uuid-string",
+                                            "@type": "Discrete"
+                                        }
+                                    ],
+                                    "SecondaryAreas": [
+                                        {
+                                            "@id": "uuid-string",
+                                            "@type": "SecondaryArea",
+                                            "SwitchArea": {
+                                                "@id": "uuid-string",
+                                                "@type": "SwitchArea"
+                                            },
+                                            "BoundaryTerminals": [
+                                                {
+                                                    "@id": "9d06670e-f8ad-46a1-9854-bba7adaf1cf0",
+                                                    "@type": "Terminal"
+                                                }
+                                            ],
+                                            "AddressableEquipment": [
+                                                {
+                                                    "@id": "uuid-string",
+                                                    "@type": "PowerElectronicsConnection"
+                                                }
+                                            ],
+                                            "UnaddressableEquipment": [
+                                                {
+                                                    "@id": "uuid-string",
+                                                    "@type": "EnergyConsumer"
+                                                }
+                                            ],
+                                            "Measurements": [
+                                                {
+                                                    "@id": "uuid-string",
+                                                    "@type": "Analog"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+}
+```
 
 ## Real-time Topology Processor Service
 

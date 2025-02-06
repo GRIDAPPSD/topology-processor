@@ -1,0 +1,14 @@
+{
+	"id":"gridappsd-topology-background-service",
+	"description": "Topology Processor Background Service",
+	"creator":"PNNL",
+	"inputs":[],
+	"outputs":[],
+	"static_args":[],
+	"execution_path":"/gridappsd/services/gridappsd-topology-processor/topo_background_service.py",
+	"type":"PYTHON",
+	"launch_on_startup": true,
+        "prereqs":[],
+	"multiple_instances":false,
+	"environmentVariables":[]
+}
