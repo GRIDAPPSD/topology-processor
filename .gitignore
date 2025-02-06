@@ -106,3 +106,4 @@ ENV/
 
 # visual studio code
 .vscode/
+poetry.lock
