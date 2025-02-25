@@ -20,7 +20,7 @@ class TopologyProcessor(GridAPPSD):
         assert gapps.connected
         self.gapps = gapps
         self.log = self.gapps.get_logger()
-        params = ConnectionParameters(url = "http://localhost:8889/bigdata/namespace/kb/sparql", cim_profile='cimhub_2023', iec61970_301=8)
+        params = ConnectionParameters(url = "http://blazegraph:8080/bigdata/namespace/kb/sparql", cim_profile='cimhub_2023', iec61970_301=8)
         self.blazegraph = BlazegraphConnection(params)
 
         
