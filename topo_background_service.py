@@ -8,19 +8,17 @@ from cimgraph.databases import ConnectionParameters, BlazegraphConnection
 
 from topology_processor.utils import DistributedTopologyMessage
 import cimgraph.data_profile.cimhub_2023 as cim
+from dotenv import load_dotenv
 
 class TopologyProcessor(GridAPPSD):
     
     def __init__(self):
-        os.environ['GRIDAPPSD_APPLICATION_ID'] = 'topology-background-service'
-        os.environ['GRIDAPPSD_APPLICATION_STATUS'] = 'STARTED'
-        os.environ['GRIDAPPSD_USER'] = 'app_user'
-        os.environ['GRIDAPPSD_PASSWORD'] = '1234App'
         gapps = GridAPPSD()
         assert gapps.connected
         self.gapps = gapps
         self.log = self.gapps.get_logger()
-        params = ConnectionParameters(url = "http://localhost:8889/bigdata/namespace/kb/sparql", cim_profile='cimhub_2023', iec61970_301=8)
+        db_url = f'http://{os.getenv("DB_ADDRESS","blazegraph")}:{os.getenv("DB_PORT","8080")}/bigdata/namespace/kb/sparql'
+        params = ConnectionParameters(url = db_url, cim_profile='cimhub_2023', iec61970_301=8)
         self.blazegraph = BlazegraphConnection(params)
 
         
@@ -54,7 +52,7 @@ class TopologyProcessor(GridAPPSD):
             self.gapps.send(reply_to, return_message)
             
         elif message['requestType'] == 'GET_BASE_TOPOLOGY':
-            Topology = self.get_base_topology(model_mrid)
+            #Topology = self.get_base_topology(model_mrid)
             return_message = {  
                 "response": "not yet supported"
                 # 'modelID': model_mrid,
@@ -91,9 +89,10 @@ class TopologyProcessor(GridAPPSD):
      
             
 def _main():
+
+    load_dotenv()
+        
     topic = "goss.gridappsd.request.data.cimtopology"
-    os.environ['GRIDAPPSD_USER'] = 'app_user'
-    os.environ['GRIDAPPSD_PASSWORD'] = '1234App'
     gapps = GridAPPSD()
     assert gapps.connected
     topology = TopologyProcessor()
