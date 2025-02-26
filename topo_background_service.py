@@ -17,7 +17,7 @@ class TopologyProcessor(GridAPPSD):
         assert gapps.connected
         self.gapps = gapps
         self.log = self.gapps.get_logger()
-        db_url = f'http://{os.getenv("DB_ADDRESS","gridappsd")}:{os.getenv("DB_PORT","8080")}/bigdata/namespace/kb/sparql'
+        db_url = f'http://{os.getenv("DB_ADDRESS","blazegraph")}:{os.getenv("DB_PORT","8080")}/bigdata/namespace/kb/sparql'
         params = ConnectionParameters(url = db_url, cim_profile='cimhub_2023', iec61970_301=8)
         self.blazegraph = BlazegraphConnection(params)
 
