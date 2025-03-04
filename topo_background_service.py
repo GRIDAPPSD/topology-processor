@@ -36,7 +36,7 @@ class TopologyProcessor(GridAPPSD):
             self.log.info(f'Building Distributed Areas for {model_mrid}')
             
             topo_message = DistributedTopologyMessage()
-            container = self.blazegraph.get_object(mrid=model_mrid)
+            container = self.blazegraph.get_object(mRID=model_mrid)
 
             if isinstance(container, cim.Feeder):
                 topo_message.get_context_from_feeder(container, self.blazegraph)
