@@ -76,7 +76,7 @@ class DistributedTopologyMessage():
         self.message['DistributionArea']['Substations'] = []
 
         
-        for substation in distribution_area.Substations:
+        for substation in distribution_area.Substation:
             sub_msg = json.loads(substation.__repr__())
             sub_msg['NormalEnergizedFeeder'] = []
 
