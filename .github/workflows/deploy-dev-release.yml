@@ -47,7 +47,7 @@ jobs:
       contents: write  # To create the prerelease
     steps:
       - name: Checkout develop
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           ref: develop
@@ -58,7 +58,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install Poetry
-        uses: snok/install-poetry@v1
+        uses: snok/install-poetry@a783c322200f0519c7926aa6faa857c4e23e9263  # v1.4.2
         with:
           virtualenvs-create: true
           virtualenvs-in-project: true
@@ -87,7 +87,7 @@ jobs:
           twine check dist/*
 
       - name: Create GitHub prerelease
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd  # v1.21.0
         with:
           artifacts: "dist/*.gz,dist/*.whl"
           artifactErrorsFailBuild: true
@@ -99,6 +99,7 @@ jobs:
 
       - name: Publish prerelease to PyPI
         if: ${{ github.repository_owner == 'GRIDAPPSD' }}
+        env:
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
         run: |
-          poetry config pypi-token.pypi "${{ secrets.PYPI_TOKEN }}"
           poetry publish
