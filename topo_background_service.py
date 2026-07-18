@@ -1,12 +1,30 @@
 import os
 import json
 import time
+from uuid import UUID
 from gridappsd import GridAPPSD
 from cimgraph.databases.blazegraph import BlazegraphConnection
 
 from topology_processor.utils import DistributedTopologyMessage
 import cimgraph.data_profile.cimhub_2023 as cim
 from dotenv import load_dotenv
+
+
+def canonicalize_mrid(mrid: str) -> str | None:
+    """Normalize an mRID to the bare lowercase UUID that Blazegraph stores.
+
+    FieldBusManager sends the mRID in varied forms (plain uppercase UUID,
+    underscore-prefixed RDF ID, mixed case). cimgraph's create_object keys the
+    graph on UUID(uri.strip('_').lower()) but get_object_sparql does not
+    canonicalize the lookup, so an uncanonicalized mRID silently misses. Parse
+    to a UUID here (matching create_object) so the lookup is robust to any input
+    form. Returns None when the mRID is not a valid UUID so the caller can fail
+    loudly instead of querying with garbage.
+    """
+    try:
+        return str(UUID(mrid.strip('_').lower()))
+    except (ValueError, AttributeError):
+        return None
 
 # Uncomment and set following environment variables if testing outside GridAPPS-D container
 #os.environ["GRIDAPPSD_ADDRESS"] = ''
@@ -49,18 +67,37 @@ class TopologyProcessor(GridAPPSD):
                 self.gapps.send(reply_to, self.return_message[model_mrid])
             
             else:
-            
+
+                query_mrid = canonicalize_mrid(model_mrid)
+                if query_mrid is None:
+                    error = f'mRID {model_mrid!r} is not a valid UUID; cannot build topology'
+                    self.log.error(error)
+                    self.gapps.send(reply_to, json.dumps({'error': error}, indent=4))
+                    return
+
                 topo_message = DistributedTopologyMessage()
-                container = self.blazegraph.get_object(mRID=model_mrid)
+                container = self.blazegraph.get_object(mRID=query_mrid)
 
                 if isinstance(container, cim.Feeder):
                     topo_message.get_context_from_feeder(container, self.blazegraph)
 
                 elif isinstance(container, cim.FeederArea):
                     topo_message.get_context_from_feeder_area(container, self.blazegraph)
-                    
+
                 elif isinstance(container, cim.DistributionArea):
                     topo_message.get_context_from_distribution_area(container, self.blazegraph)
+
+                elif container is None:
+                    # get_object found no container for this mRID. Do NOT serialize
+                    # an empty DistributionArea as success: the caller cannot tell
+                    # that from a legitimately-empty topology. Signal not-found
+                    # explicitly so FieldBusManager can distinguish the two.
+                    error = (f'No container resolved for mRID {model_mrid!r} '
+                             f'(queried as {query_mrid}); topology not built')
+                    self.log.error(error)
+                    del topo_message
+                    self.gapps.send(reply_to, json.dumps({'error': error}, indent=4))
+                    return
 
                 self.return_message[model_mrid] = json.dumps(topo_message.message, indent=4)
                 del topo_message
