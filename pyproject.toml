@@ -1,6 +1,12 @@
 [tool.poetry]
 name = "gridappsd-topology-processor"
-version = "0.4.0a0"
+# SemVer prerelease form is required by python-semantic-release, which computes
+# the next version and writes it here. poetry normalizes this to the PEP440 form
+# (0.4.0-a.1 becomes 0.4.0a1) when it builds the distribution, so the artifact
+# published to PyPI carries the PEP440 spelling PyPI expects. Do not hand-edit
+# this string on develop: the dev-deploy workflow owns it. See
+# .github/workflows/deploy-dev-release.yml and [tool.semantic_release] below.
+version = "0.4.0-a.0"
 description = ""
 authors = [
     "A. Anderson <19935503+AAndersn@users.noreply.github.com>",
@@ -36,3 +42,36 @@ pre-commit = "^3.3.2"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+# python-semantic-release: sole version authority for the dev channel.
+#
+# On a push to develop the deploy-dev-release workflow runs semantic-release,
+# which reads the conventional-commit history since the last release tag,
+# computes the next prerelease version (feat -> minor, fix -> patch, breaking ->
+# major, always in the 'a' prerelease channel on develop), writes it into
+# tool.poetry.version above, commits that bump back to develop, and tags it.
+#
+# semantic-release is strictly SemVer; PyPI and poetry are PEP440. The two forms
+# are equivalent for alpha prereleases: semantic-release writes 0.4.0-a.N and
+# poetry build normalizes it to 0.4.0aN. The baseline tag MUST be the SemVer form
+# (v0.4.0-a.0) so semantic-release can parse it; a PEP440-form tag such as
+# v0.4.0a0 is unparseable to semantic-release and forces the baseline back to
+# 0.0.0, restarting version numbering.
+[tool.semantic_release]
+version_toml = ["pyproject.toml:tool.poetry.version"]
+tag_format = "v{version}"
+# The project is pre-1.0; allow 0.x versions and do not let a feat/breaking
+# change on a 0.x line jump straight to 1.0.0.
+allow_zero_version = true
+major_on_zero = false
+commit_parser = "conventional"
+# [skip ci] keeps the bump commit from re-triggering this workflow into a loop.
+# A GITHUB_TOKEN-authored push does not trigger workflow runs either, so this is
+# belt-and-suspenders; keep it so a future switch to a PAT stays loop-safe.
+commit_message = "chore(release): {version} [skip ci]"
+build_command = ""
+
+[tool.semantic_release.branches.develop]
+match = "develop"
+prerelease = true
+prerelease_token = "a"

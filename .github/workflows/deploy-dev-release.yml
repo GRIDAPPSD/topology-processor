@@ -1,28 +1,33 @@
 ---
-# Deploy a semver prerelease on push to develop.
+# Deploy an auto-versioned semver prerelease on push to develop.
 #
-# This repo adopts Semantic Versioning (see CHANGELOG.md). The published version
-# is read verbatim from pyproject.toml, which carries a prerelease semver such as
-# 0.4.0a0. This workflow no longer calls the shared GRIDAPPSD/.github reusable
-# workflow, because that workflow computes the next version from the highest
-# non-prerelease git tag and git-restores pyproject, ignoring the pyproject
-# version entirely. On this repo the highest such tag is the CalVer v2023.6.1,
-# which always outsorts any semver v0.4.0 tag, so the shared flow keeps trying to
-# republish a CalVer alpha (2023.6.3a0) and fails with a PyPI 400 File already
-# exists. Seeding a v0.4.0 tag cannot win against the CalVer tag. Adopting semver
-# therefore requires deriving the version from pyproject.toml, so the dev job is
-# implemented locally.
+# python-semantic-release is the sole version authority. On a push to develop it
+# reads the conventional-commit history since the last release tag, computes the
+# next prerelease version (feat -> minor, fix -> patch, breaking -> major, always
+# in the 'a' prerelease channel on develop), writes it into pyproject.toml,
+# commits that bump back to develop, and creates the git tag plus a GitHub
+# prerelease. This replaces the earlier manual approach where the version was
+# hand-edited in pyproject.toml on every dev release; the version now derives
+# from what actually changed, per .claude/rules/releasing.md.
 #
-# PyPI is append-only: publishing the same version twice fails. To publish a new
-# prerelease, advance the prerelease number in pyproject.toml (0.4.0a0 to
-# 0.4.0a1, and so on) in the change that lands on develop.
+# After semantic-release commits the bump and tags it, poetry builds the
+# distribution (normalizing the semver 0.4.0-a.N to the PEP440 0.4.0aN that PyPI
+# expects) and twine publishes it. The final step then ASSERTS the just-computed
+# version actually appears on PyPI, so a run cannot report success while
+# publishing nothing.
+#
+# develop is not a protected branch (the repository ruleset covers main only), so
+# the standard GITHUB_TOKEN with contents: write is sufficient to push the bump
+# commit and tag. No GitHub App or bypass PAT is required for the dev channel.
+# The later stable release (develop -> main) is a separate, PR-gated path.
 #
 # GitHub-hosted runner is acceptable here: this is a non-deploy-bearing publish
 # job that authenticates only with the ephemeral GITHUB_TOKEN plus PYPI_TOKEN to
-# create a GitHub prerelease and publish to PyPI. It does not SSH to any target
-# and does not touch a running environment. See .claude/rules/devops.md.
+# push a version bump, create a GitHub prerelease, and publish to PyPI. It does
+# not SSH to any target and does not touch a running environment. See
+# .claude/rules/devops.md.
 
-name: Deploy Pre-Release Artifacts (semver)
+name: Deploy Pre-Release Artifacts (auto-versioned)
 
 on:
   push:
@@ -38,17 +43,25 @@ env:
   LANG: en_US.utf-8
   LC_ALL: en_US.utf-8
   PYTHON_VERSION: '3.10'
+  PACKAGE_NAME: gridappsd-topology-processor
+
+# Least privilege: the only elevated scope needed is contents: write, so
+# semantic-release can push the version-bump commit and the release tag to
+# develop and create the GitHub prerelease.
+permissions:
+  contents: write
 
 jobs:
   deploy-dev-release:
+    # Guard against running on main; the stable release path is separate.
     if: github.ref_name != 'main'
     runs-on: ubuntu-22.04
-    permissions:
-      contents: write  # To create the prerelease
     steps:
       - name: Checkout develop
         uses: actions/checkout@v5
         with:
+          # Full history and tags are required for semantic-release to read the
+          # commit range since the last release and to compute the next version.
           fetch-depth: 0
           ref: develop
 
@@ -57,49 +70,98 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      # semantic-release computes the next prerelease version, writes it into
+      # pyproject.toml, commits the bump back to develop with a [skip ci] marker,
+      # tags the commit, and creates the GitHub prerelease. It does NOT publish
+      # to PyPI (that is poetry + twine below); build is disabled here because
+      # poetry owns the build with PEP440 normalization.
+      - name: Compute version, commit bump, tag, GitHub prerelease
+        id: release
+        uses: python-semantic-release/python-semantic-release@39dd2052f2ce8282a5d932c31d58a2ca06d2550e  # v10.6.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          git_committer_name: "github-actions[bot]"
+          git_committer_email: "github-actions[bot]@users.noreply.github.com"
+          # Force the prerelease channel regardless of the bump size, so develop
+          # never cuts a bare-stable version.
+          prerelease: "true"
+          build: "false"
+
+      - name: Report semantic-release decision
+        run: |
+          echo "released:  ${{ steps.release.outputs.released }}"
+          echo "version:   ${{ steps.release.outputs.version }}"
+          echo "tag:       ${{ steps.release.outputs.tag }}"
+          echo "link:      ${{ steps.release.outputs.link }}"
+
+      # Everything below only runs when semantic-release actually cut a release.
+      # A push with no releasable commits (only chore/docs/style, or the bump
+      # commit itself) yields released == false; there is nothing to publish and
+      # the job succeeds without touching PyPI.
       - name: Install Poetry
+        if: ${{ steps.release.outputs.released == 'true' }}
         uses: snok/install-poetry@a783c322200f0519c7926aa6faa857c4e23e9263  # v1.4.2
         with:
           virtualenvs-create: true
           virtualenvs-in-project: true
 
-      - name: Read and validate prerelease version from pyproject
-        id: resolve
+      - name: Sync working tree to the release commit and validate prerelease
+        if: ${{ steps.release.outputs.released == 'true' }}
         run: |
-          VERSION=$(poetry version --short)
-          # The dev channel only ever publishes a prerelease (alpha, beta, rc, or
-          # dev). A bare stable version on develop is a mistake: fail loudly so a
-          # stable version is never published from the dev channel by accident.
-          if ! echo "${VERSION}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(a|b|rc|\.dev)[0-9]+$'; then
-            echo "error: pyproject version '${VERSION}' is not a prerelease; the dev channel publishes prereleases only (for example 0.4.0a0)" >&2
+          # semantic-release committed the version bump; pull it into the working
+          # tree so poetry builds the just-released version, not the pre-bump one.
+          git pull --ff-only origin develop
+          BUILT_VERSION=$(poetry version --short)
+          echo "poetry sees version: ${BUILT_VERSION}"
+          # Defense in depth: the dev channel publishes prereleases only. A bare
+          # stable version here is a mistake; fail loudly rather than publish a
+          # stable artifact from the dev channel.
+          if ! echo "${BUILT_VERSION}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(a|b|rc|\.dev)[0-9]+$'; then
+            echo "error: built version '${BUILT_VERSION}' is not a prerelease; the dev channel publishes prereleases only" >&2
             exit 1
           fi
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "Publishing prerelease version: ${VERSION}"
+          echo "built_version=${BUILT_VERSION}" >> "$GITHUB_ENV"
 
-      - name: Build
+      - name: Build distribution
+        if: ${{ steps.release.outputs.released == 'true' }}
         run: |
           poetry build -vvv
 
       - name: Twine check artifacts
+        if: ${{ steps.release.outputs.released == 'true' }}
         run: |
           pip install --quiet twine
           twine check dist/*
 
-      - name: Create GitHub prerelease
-        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd  # v1.21.0
-        with:
-          artifacts: "dist/*.gz,dist/*.whl"
-          artifactErrorsFailBuild: true
-          generateReleaseNotes: true
-          commit: ${{ github.sha }}
-          prerelease: true
-          tag: "v${{ steps.resolve.outputs.version }}"
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Publish prerelease to PyPI
-        if: ${{ github.repository_owner == 'GRIDAPPSD' }}
+        if: ${{ steps.release.outputs.released == 'true' && github.repository_owner == 'GRIDAPPSD' }}
         env:
+          # Token is passed via the environment, never interpolated into a run
+          # command line, so it cannot leak into the process table or logs.
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
         run: |
           poetry publish
+
+      # LOUD FAILURE GATE: a green run must mean the artifact actually landed on
+      # PyPI. poetry publish can report success while PyPI ultimately rejects or
+      # drops the upload; this step polls the PyPI JSON API until the exact
+      # just-built version is present, and fails the run if it never appears.
+      - name: Assert version published to PyPI
+        if: ${{ steps.release.outputs.released == 'true' && github.repository_owner == 'GRIDAPPSD' }}
+        env:
+          BUILT_VERSION: ${{ env.built_version }}
+        run: |
+          echo "Asserting ${PACKAGE_NAME} ${BUILT_VERSION} is present on PyPI"
+          # PyPI is eventually consistent after an upload; poll with backoff
+          # rather than checking once. 10 attempts x 15s covers roughly 2.5
+          # minutes, which is well beyond normal index propagation.
+          for attempt in $(seq 1 10); do
+            if curl -sf "https://pypi.org/pypi/${PACKAGE_NAME}/${BUILT_VERSION}/json" >/dev/null; then
+              echo "confirmed: ${PACKAGE_NAME} ${BUILT_VERSION} is on PyPI"
+              exit 0
+            fi
+            echo "attempt ${attempt}: not yet visible on PyPI, waiting 15s"
+            sleep 15
+          done
+          echo "error: ${PACKAGE_NAME} ${BUILT_VERSION} did NOT appear on PyPI after publishing; the upload silently failed" >&2
+          exit 1
