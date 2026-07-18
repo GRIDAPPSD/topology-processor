@@ -6,7 +6,7 @@ name = "gridappsd-topology-processor"
 # published to PyPI carries the PEP440 spelling PyPI expects. Do not hand-edit
 # this string on develop: the dev-deploy workflow owns it. See
 # .github/workflows/deploy-dev-release.yml and [tool.semantic_release] below.
-version = "0.4.0-a.0"
+version = "0.4.0-a.1"
 description = ""
 authors = [
     "A. Anderson <19935503+AAndersn@users.noreply.github.com>",
@@ -54,9 +54,16 @@ build-backend = "poetry.core.masonry.api"
 # semantic-release is strictly SemVer; PyPI and poetry are PEP440. The two forms
 # are equivalent for alpha prereleases: semantic-release writes 0.4.0-a.N and
 # poetry build normalizes it to 0.4.0aN. The baseline tag MUST be the SemVer form
-# (v0.4.0-a.0) so semantic-release can parse it; a PEP440-form tag such as
+# (v0.4.0-a.1) so semantic-release can parse it; a PEP440-form tag such as
 # v0.4.0a0 is unparseable to semantic-release and forces the baseline back to
 # 0.0.0, restarting version numbering.
+#
+# The prerelease revision MUST be >= 1 when seeding. Never seed revision 0
+# (v0.4.0-a.0). python-semantic-release v10.6.1 treats a prerelease revision of 0
+# as falsy: it drops the ".0" suffix and stringifies the seed as the bare
+# v0.4.0, then runs git rev-list against that nonexistent tag and dies. It also
+# reads a bare v0.4.0 as a shipped full release, which kills the prerelease
+# channel. Seed at v0.4.0-a.1 and let semantic-release count up from there.
 [tool.semantic_release]
 version_toml = ["pyproject.toml:tool.poetry.version"]
 tag_format = "v{version}"
