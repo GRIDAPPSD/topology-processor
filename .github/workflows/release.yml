@@ -1,0 +1,219 @@
+---
+# Cut a STABLE semver release (vX.Y.Z, no prerelease suffix) from main.
+#
+# DELIBERATE DISPATCH ONLY. This workflow never triggers on push. It runs only
+# via workflow_dispatch, and the release_mode input defaults to "dry-run". An
+# operator who clicks "Run workflow" with no changes gets a harmless smoke check
+# that builds and twine-checks the artifact but publishes nothing, creates no
+# tag, and creates no GitHub release. Cutting a real release requires explicitly
+# setting release_mode to "real". This eliminates the failure class where an
+# accidental or automated merge cuts an unintended stable release. See
+# .claude/rules/releasing.md section 1.
+#
+# VERSION AUTHORITY, and why this is not the dev workflow's psr-computes path.
+# python-semantic-release v10.6.1 has no operation that finalizes a prerelease
+# line (0.4.0-a.N) into its stable counterpart (0.4.0). Its stable channel
+# ignores prerelease tags entirely: it reports "No full releases found", falls
+# back to a 0.0.0 baseline, and would compute 0.0.1. The repository's tag
+# history compounds this: the only prior full tag is the unreachable CalVer
+# v2023.6.1, which poisons psr's stable base resolution. For the first stable
+# cut off this history, pyproject.toml is therefore the single source of truth
+# for the version, and the tag is created explicitly here. Once v0.4.0 exists as
+# a reachable stable tag, psr's stable channel resolves correctly again
+# (a fix commit computes 0.4.1, a feat computes 0.5.0, both verified locally),
+# so 0.4.1 and later MAY move to a psr-driven path. This workflow is the
+# deterministic first-stable-cut path.
+#
+# GitHub-hosted runner is acceptable: this is a non-deploy-bearing publish job
+# authenticating only with the ephemeral GITHUB_TOKEN plus PYPI_TOKEN. It does
+# not SSH to any target and does not touch a running environment. See
+# .claude/rules/devops.md.
+
+name: Cut Stable Release (deliberate dispatch)
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_mode:
+        description: >-
+          dry-run builds and twine-checks only (no publish, no tag, no release).
+          real publishes to PyPI, tags the commit, and creates the GitHub release.
+        type: choice
+        required: true
+        default: dry-run
+        options:
+          - dry-run
+          - real
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  LANG: en_US.utf-8
+  LC_ALL: en_US.utf-8
+  PYTHON_VERSION: '3.10'
+  PACKAGE_NAME: gridappsd-topology-processor
+
+# Least privilege. contents: write is needed only in real mode to push the tag
+# and create the GitHub release. dry-run does not exercise the write scope.
+permissions:
+  contents: write
+
+jobs:
+  cut-stable-release:
+    # Stable releases come from main only.
+    if: github.ref_name == 'main'
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v5
+        with:
+          # Full history and tags: the tag-existence guard and the version
+          # readback both need them.
+          fetch-depth: 0
+          ref: main
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry
+        uses: snok/install-poetry@a783c322200f0519c7926aa6faa857c4e23e9263  # v1.4.2
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      # PRE-FLIGHT: assert the PyPI token is present before doing any work, so a
+      # real run fails loudly here rather than after building. Skipped in
+      # dry-run, which never publishes. See .claude/rules/releasing.md section 5.
+      - name: Pre-flight assert PyPI token present (real mode)
+        if: ${{ github.event.inputs.release_mode == 'real' }}
+        env:
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          if [ -z "${POETRY_PYPI_TOKEN_PYPI}" ]; then
+            echo "error: PYPI_TOKEN secret is missing or empty; cannot publish a real release" >&2
+            exit 1
+          fi
+          echo "PyPI token is present"
+
+      # The version is read from pyproject.toml (the source of truth for the
+      # first stable cut) and must be a bare stable version: no a/b/rc/.dev
+      # suffix. A prerelease suffix here means main was not prepared for a stable
+      # release; fail loudly rather than tag or publish a prerelease as stable.
+      - name: Read and validate stable version
+        id: version
+        run: |
+          RELEASE_VERSION=$(poetry version --short)
+          echo "pyproject version: ${RELEASE_VERSION}"
+          if ! echo "${RELEASE_VERSION}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "error: version '${RELEASE_VERSION}' is not a bare stable X.Y.Z; main must be prepared with a stable version before a stable release" >&2
+            exit 1
+          fi
+          echo "release_version=${RELEASE_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "release_tag=v${RELEASE_VERSION}" >> "$GITHUB_OUTPUT"
+
+      # A stable tag must not already exist on the remote. PyPI is append-only
+      # and tags are immutable; re-cutting an existing version is a mistake.
+      - name: Assert release tag does not already exist on origin
+        run: |
+          TAG="${{ steps.version.outputs.release_tag }}"
+          if git ls-remote --tags origin "refs/tags/${TAG}" | grep -q "${TAG}"; then
+            echo "error: tag ${TAG} already exists on origin; a stable release for this version was already cut" >&2
+            exit 1
+          fi
+          echo "tag ${TAG} is free on origin"
+
+      - name: Build distribution
+        run: |
+          poetry build -vvv
+
+      - name: Twine check artifacts
+        run: |
+          pip install --quiet twine
+          twine check dist/*
+
+      - name: Dry-run summary (no publish, no tag, no release)
+        if: ${{ github.event.inputs.release_mode == 'dry-run' }}
+        run: |
+          echo "DRY RUN: built and twine-checked ${PACKAGE_NAME} ${{ steps.version.outputs.release_version }}"
+          echo "DRY RUN: no publish to PyPI, no tag ${{ steps.version.outputs.release_tag }}, no GitHub release"
+          echo "To cut the real release, re-run with release_mode=real"
+
+      # ----- Everything below runs only in real mode on the GRIDAPPSD org. -----
+
+      - name: Publish stable release to PyPI (real mode)
+        if: ${{ github.event.inputs.release_mode == 'real' && github.repository_owner == 'GRIDAPPSD' }}
+        env:
+          # Token is passed via the environment, never interpolated into a run
+          # command line, so it cannot leak into the process table or logs.
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          poetry publish
+
+      - name: Create and push the release tag (real mode)
+        if: ${{ github.event.inputs.release_mode == 'real' && github.repository_owner == 'GRIDAPPSD' }}
+        run: |
+          TAG="${{ steps.version.outputs.release_tag }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Annotated tag on the current main commit.
+          git tag -a "${TAG}" -m "Release ${TAG}"
+          git push origin "${TAG}"
+
+      - name: Create the GitHub release (real mode)
+        if: ${{ github.event.inputs.release_mode == 'real' && github.repository_owner == 'GRIDAPPSD' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.version.outputs.release_tag }}"
+          # Release notes come from CHANGELOG.md when present; gh generates a
+          # notes body from commits as a fallback.
+          if [ -f CHANGELOG.md ]; then
+            gh release create "${TAG}" \
+              --title "${TAG}" \
+              --notes-file CHANGELOG.md \
+              dist/*
+          else
+            gh release create "${TAG}" \
+              --title "${TAG}" \
+              --generate-notes \
+              dist/*
+          fi
+
+      # LOUD FAILURE GATE 1: the tag must actually be on the remote. A green real
+      # run that did not land the tag is a false success.
+      - name: Assert tag pushed to origin (real mode)
+        if: ${{ github.event.inputs.release_mode == 'real' && github.repository_owner == 'GRIDAPPSD' }}
+        run: |
+          TAG="${{ steps.version.outputs.release_tag }}"
+          if ! git ls-remote --tags origin "refs/tags/${TAG}" | grep -q "${TAG}"; then
+            echo "error: tag ${TAG} did NOT land on origin after the release; the tag push silently failed" >&2
+            exit 1
+          fi
+          echo "confirmed: tag ${TAG} is on origin"
+
+      # LOUD FAILURE GATE 2: the artifact must actually be on PyPI. poetry
+      # publish can report success while PyPI ultimately rejects or drops the
+      # upload; poll the PyPI JSON API until the exact version is present.
+      - name: Assert version published to PyPI (real mode)
+        if: ${{ github.event.inputs.release_mode == 'real' && github.repository_owner == 'GRIDAPPSD' }}
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.release_version }}
+        run: |
+          echo "Asserting ${PACKAGE_NAME} ${RELEASE_VERSION} is present on PyPI"
+          # PyPI is eventually consistent after an upload; poll with backoff.
+          # 10 attempts x 15s covers roughly 2.5 minutes, well beyond normal
+          # index propagation.
+          for attempt in $(seq 1 10); do
+            if curl -sf "https://pypi.org/pypi/${PACKAGE_NAME}/${RELEASE_VERSION}/json" >/dev/null; then
+              echo "confirmed: ${PACKAGE_NAME} ${RELEASE_VERSION} is on PyPI"
+              exit 0
+            fi
+            echo "attempt ${attempt}: not yet visible on PyPI, waiting 15s"
+            sleep 15
+          done
+          echo "error: ${PACKAGE_NAME} ${RELEASE_VERSION} did NOT appear on PyPI after publishing; the upload silently failed" >&2
+          exit 1
