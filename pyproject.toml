@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gridappsd-topology-processor"
-version = "0.3.0"
+version = "0.4.0a0"
 description = ""
 authors = [
     "A. Anderson <19935503+AAndersn@users.noreply.github.com>",
