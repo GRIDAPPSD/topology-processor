@@ -6,7 +6,7 @@ name = "gridappsd-topology-processor"
 # published to PyPI carries the PEP440 spelling PyPI expects. Do not hand-edit
 # this string on develop: the dev-deploy workflow owns it. See
 # .github/workflows/deploy-dev-release.yml and [tool.semantic_release] below.
-version = "0.4.0-a.1"
+version = "0.4.0-a.2"
 description = ""
 authors = [
     "A. Anderson <19935503+AAndersn@users.noreply.github.com>",
