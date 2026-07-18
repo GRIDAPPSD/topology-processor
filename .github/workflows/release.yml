@@ -45,6 +45,13 @@ on:
           - dry-run
           - real
 
+# Serialize real dispatches. Two overlapping runs must never race the tag push
+# or the PyPI publish against each other; queue rather than cancel so an
+# in-flight publish is allowed to finish before the next run starts.
+concurrency:
+  group: stable-release
+  cancel-in-progress: false
+
 defaults:
   run:
     shell: bash
@@ -67,7 +74,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout main
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           # Full history and tags: the tag-existence guard and the version
           # readback both need them.
@@ -89,7 +96,7 @@ jobs:
       # real run fails loudly here rather than after building. Skipped in
       # dry-run, which never publishes. See .claude/rules/releasing.md section 5.
       - name: Pre-flight assert PyPI token present (real mode)
-        if: ${{ github.event.inputs.release_mode == 'real' }}
+        if: ${{ github.event.inputs.release_mode == 'real' && github.repository_owner == 'GRIDAPPSD' }}
         env:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
         run: |
@@ -143,6 +150,18 @@ jobs:
           echo "To cut the real release, re-run with release_mode=real"
 
       # ----- Everything below runs only in real mode on the GRIDAPPSD org. -----
+      #
+      # ORDERING NOTE (publish, then tag, then GitHub release). PyPI is
+      # append-only: a version can be uploaded exactly once and never replaced.
+      # So if the PyPI publish below succeeds but a later step fails (the tag
+      # push, the GitHub release, or a loud-failure gate), this run is NOT
+      # retryable as-is. Re-running would attempt to publish the same version and
+      # PyPI would reject it. Recovery is a FRESH version bump on main (a new
+      # X.Y.Z in pyproject.toml, a new CHANGELOG section) followed by a new
+      # dispatch, never a re-run of this workflow against the already-published
+      # version. Publishing first is deliberate: PyPI availability is the
+      # irreversible act, and the tag and release are cheap to recreate against a
+      # new version if they fail.
 
       - name: Publish stable release to PyPI (real mode)
         if: ${{ github.event.inputs.release_mode == 'real' && github.repository_owner == 'GRIDAPPSD' }}
@@ -167,14 +186,25 @@ jobs:
         if: ${{ github.event.inputs.release_mode == 'real' && github.repository_owner == 'GRIDAPPSD' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ steps.version.outputs.release_version }}
         run: |
           TAG="${{ steps.version.outputs.release_tag }}"
-          # Release notes come from CHANGELOG.md when present; gh generates a
-          # notes body from commits as a fallback.
+          # Release notes come from the version's own CHANGELOG section, not the
+          # whole file: extract the block under "## [<version>]" up to the next
+          # "## [" header. Fall back to gh's commit-generated notes when the
+          # CHANGELOG or the matching section is absent.
+          NOTES_FILE="$(mktemp)"
           if [ -f CHANGELOG.md ]; then
+            awk -v ver="${RELEASE_VERSION}" '
+              $0 ~ "^## \\[" ver "\\]" { grab = 1; print; next }
+              grab && /^## \[/ { exit }
+              grab { print }
+            ' CHANGELOG.md > "${NOTES_FILE}"
+          fi
+          if [ -s "${NOTES_FILE}" ]; then
             gh release create "${TAG}" \
               --title "${TAG}" \
-              --notes-file CHANGELOG.md \
+              --notes-file "${NOTES_FILE}" \
               dist/*
           else
             gh release create "${TAG}" \
