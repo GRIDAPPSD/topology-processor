@@ -1,12 +1,17 @@
 [tool.poetry]
 name = "gridappsd-topology-processor"
-# SemVer prerelease form is required by python-semantic-release, which computes
-# the next version and writes it here. poetry normalizes this to the PEP440 form
-# (0.4.0-a.1 becomes 0.4.0a1) when it builds the distribution, so the artifact
-# published to PyPI carries the PEP440 spelling PyPI expects. Do not hand-edit
-# this string on develop: the dev-deploy workflow owns it. See
-# .github/workflows/deploy-dev-release.yml and [tool.semantic_release] below.
-version = "0.4.0-a.2"
+# On main this is the source of truth for the first stable cut: a bare stable
+# X.Y.Z, no a/b/rc/.dev suffix. The Cut Stable Release workflow reads it, tags
+# vX.Y.Z explicitly, and publishes. python-semantic-release cannot finalize a
+# prerelease line (0.4.0-a.N) into its stable counterpart, so the stable version
+# is set here by hand. See .github/workflows/release.yml.
+#
+# On develop this string is owned by the dev-deploy workflow: semantic-release
+# computes the next prerelease (0.4.0-a.N in SemVer form, which poetry normalizes
+# to 0.4.0aN PEP440 at build time) and writes it here. Do not hand-edit it on
+# develop. See .github/workflows/deploy-dev-release.yml and
+# [tool.semantic_release] below.
+version = "0.4.0"
 description = ""
 authors = [
     "A. Anderson <19935503+AAndersn@users.noreply.github.com>",
