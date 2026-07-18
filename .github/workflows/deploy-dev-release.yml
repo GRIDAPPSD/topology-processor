@@ -1,5 +1,28 @@
 ---
-name: Deploy Pre-Release Artifacts
+# Deploy a semver prerelease on push to develop.
+#
+# This repo adopts Semantic Versioning (see CHANGELOG.md). The published version
+# is read verbatim from pyproject.toml, which carries a prerelease semver such as
+# 0.4.0a0. This workflow no longer calls the shared GRIDAPPSD/.github reusable
+# workflow, because that workflow computes the next version from the highest
+# non-prerelease git tag and git-restores pyproject, ignoring the pyproject
+# version entirely. On this repo the highest such tag is the CalVer v2023.6.1,
+# which always outsorts any semver v0.4.0 tag, so the shared flow keeps trying to
+# republish a CalVer alpha (2023.6.3a0) and fails with a PyPI 400 File already
+# exists. Seeding a v0.4.0 tag cannot win against the CalVer tag. Adopting semver
+# therefore requires deriving the version from pyproject.toml, so the dev job is
+# implemented locally.
+#
+# PyPI is append-only: publishing the same version twice fails. To publish a new
+# prerelease, advance the prerelease number in pyproject.toml (0.4.0a0 to
+# 0.4.0a1, and so on) in the change that lands on develop.
+#
+# GitHub-hosted runner is acceptable here: this is a non-deploy-bearing publish
+# job that authenticates only with the ephemeral GITHUB_TOKEN plus PYPI_TOKEN to
+# create a GitHub prerelease and publish to PyPI. It does not SSH to any target
+# and does not touch a running environment. See .claude/rules/devops.md.
+
+name: Deploy Pre-Release Artifacts (semver)
 
 on:
   push:
@@ -17,12 +40,65 @@ env:
   PYTHON_VERSION: '3.10'
 
 jobs:
-  call-deploy-release:
+  deploy-dev-release:
+    if: github.ref_name != 'main'
+    runs-on: ubuntu-22.04
     permissions:
-      contents: write  # To push a branch
-      pull-requests: write  # To create a PR from that branch
+      contents: write  # To create the prerelease
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: develop
 
-    uses: GRIDAPPSD/.github/.github/workflows/deploy-dev-release.yml@main
-    secrets:
-      git-token: ${{ secrets.GITHUB_TOKEN }}
-      pypi-token: ${{ secrets.PYPI_TOKEN }}
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Read and validate prerelease version from pyproject
+        id: resolve
+        run: |
+          VERSION=$(poetry version --short)
+          # The dev channel only ever publishes a prerelease (alpha, beta, rc, or
+          # dev). A bare stable version on develop is a mistake: fail loudly so a
+          # stable version is never published from the dev channel by accident.
+          if ! echo "${VERSION}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(a|b|rc|\.dev)[0-9]+$'; then
+            echo "error: pyproject version '${VERSION}' is not a prerelease; the dev channel publishes prereleases only (for example 0.4.0a0)" >&2
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Publishing prerelease version: ${VERSION}"
+
+      - name: Build
+        run: |
+          poetry build -vvv
+
+      - name: Twine check artifacts
+        run: |
+          pip install --quiet twine
+          twine check dist/*
+
+      - name: Create GitHub prerelease
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "dist/*.gz,dist/*.whl"
+          artifactErrorsFailBuild: true
+          generateReleaseNotes: true
+          commit: ${{ github.sha }}
+          prerelease: true
+          tag: "v${{ steps.resolve.outputs.version }}"
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish prerelease to PyPI
+        if: ${{ github.repository_owner == 'GRIDAPPSD' }}
+        run: |
+          poetry config pypi-token.pypi "${{ secrets.PYPI_TOKEN }}"
+          poetry publish
